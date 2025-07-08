@@ -1,5 +1,5 @@
 import CartPage from "./CartPage";
-import Footer from "../Home/components/Footer";
+import Footer from "../../components/Footer";
 
 const Cart = () => {
   return (

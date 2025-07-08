@@ -1,4 +1,4 @@
-import Footer from "../Home/components/Footer";
+import Footer from "../../components/Footer";
 import OrderDetailPage from "./OrderDetailpage";
 
 const OrderDetail = () => {

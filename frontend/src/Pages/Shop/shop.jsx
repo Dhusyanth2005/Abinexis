@@ -1,5 +1,5 @@
-import Footer from "../Home/components/Footer";
-import Header from "../Home/components/Header";
+import Footer from "../../components/Footer";
+import Header from "../../components/Header";
 import ShopPage from "./ShopPage"
 
 const Shop = () => {

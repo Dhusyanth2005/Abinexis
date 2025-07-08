@@ -1,6 +1,6 @@
 import ProductPage from "./ProductPage";
-import Header from "../Home/Components/Header";
-import Footer from "../Home/Components/Footer";
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 const Product = () => {
   return (
     <div>

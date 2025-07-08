@@ -1,4 +1,4 @@
-import Footer from '../Home/Components/Footer';
+import Footer from '../../components/Footer';
 import Checkout from './Checkout';
 
 const CheckoutPage = () => {
