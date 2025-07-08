@@ -33,12 +33,19 @@ const createProduct = async (req, res) => {
     const images = [];
     if (req.files && req.files.images) {
       const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-      for (const file of files) {
-        const result = await cloudinary.uploader.upload(file.tempFilePath, {
-          folder: 'products',
+      const uploadPromises = files.map(file => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { folder: 'products' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result.secure_url);
+            }
+          ).end(file.data);
         });
-        images.push(result.secure_url);
-      }
+      });
+      const uploadedImages = await Promise.all(uploadPromises);
+      images.push(...uploadedImages);
     }
     const product = await Product.create({
       name,
@@ -66,12 +73,19 @@ const updateProduct = async (req, res) => {
       if (req.files && req.files.images) {
         const images = [];
         const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-        for (const file of files) {
-          const result = await cloudinary.uploader.upload(file.tempFilePath, {
-            folder: 'products',
+        const uploadPromises = files.map(file => {
+          return new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              { folder: 'products' },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result.secure_url);
+              }
+            ).end(file.data);
           });
-          images.push(result.secure_url);
-        }
+        });
+        const uploadedImages = await Promise.all(uploadPromises);
+        images.push(...uploadedImages);
         product.images = images;
       }
       await product.save();
@@ -88,7 +102,7 @@ const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (product) {
-      await Product.findByIdAndDelete(req.params.id); // Updated to use findByIdAndDelete
+      await Product.findByIdAndDelete(req.params.id);
       res.json({ message: 'Product removed' });
     } else {
       res.status(404).json({ message: 'Product not found' });

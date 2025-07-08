@@ -8,12 +8,19 @@ const createReview = async (req, res) => {
     const images = [];
     if (req.files && req.files.images) {
       const files = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
-      for (const file of files) {
-        const result = await cloudinary.uploader.upload(file.tempFilePath, {
-          folder: 'reviews',
+      const uploadPromises = files.map(file => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { folder: 'reviews' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result.secure_url);
+            }
+          ).end(file.data);
         });
-        images.push(result.secure_url);
-      }
+      });
+      const uploadedImages = await Promise.all(uploadPromises);
+      images.push(...uploadedImages);
     }
     const review = await Review.create({
       product: productId,
