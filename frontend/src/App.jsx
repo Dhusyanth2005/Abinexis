@@ -8,12 +8,14 @@ import Cart from './Pages/Cart/Cart';
 import Order from './Pages/Order/Order';
 import Wishlist from './Pages/wishlist/Wishlist';
 import OrderDetail from './Pages/Order/OrderDetail';
+import AuthPage from './Pages/AuthPage';
 
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
         <Routes>
+          <Route path='/auth' element={<AuthPage />} />
           <Route path="/" element={<Homepage />} />
           <Route path="/shop/:category" element={<Shop />} />
           <Route path="/product" element={<Product />} />
