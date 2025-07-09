@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Star, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useParams,useNavigate } from 'react-router-dom';
 
 const ShopPage = () => {
   const { category } = useParams();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('Kitchen');
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -175,6 +176,9 @@ const ShopPage = () => {
     { id: 54, name: 'Desk Organizer', category: 'Stationery', subCategory: 'Office', brand: 'BIC', price: 19.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 20 },
     { id: 55, name: 'Sketchbook', category: 'Stationery', subCategory: 'Notebooks', brand: 'Staedtler', price: 12.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 18 },
   ];
+ const handleProductClick = (category, productId) => {
+    navigate(`/shop/${category.toLowerCase()}/${productId}`);
+  };
 
   const handleBrandToggle = (brand) => {
     setSelectedBrands((prev) =>
@@ -471,6 +475,7 @@ const ShopPage = () => {
                       <div
                         key={product.id}
                         className="group relative bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors"
+                        onClick={() => handleProductClick(product.category, product.id)}
                       >
                         <div className="aspect-square bg-gray-800 relative overflow-hidden">
                           <img

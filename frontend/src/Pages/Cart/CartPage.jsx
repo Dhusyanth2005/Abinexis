@@ -13,7 +13,7 @@ import {
   Clock,
   Gift
 } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([
     {
@@ -225,10 +225,10 @@ const CartPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <Link to="/" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
               <ArrowLeft className="w-5 h-5" />
               <span>Continue Shopping</span>
-            </button>
+            </Link>
           </div>
           <div className="flex items-center gap-3">
             <ShoppingCart className="w-8 h-8 text-[var(--brand-primary)]" />

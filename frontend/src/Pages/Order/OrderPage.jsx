@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Package, Truck, CheckCircle, Clock, Search, Filter, ChevronDown, Eye, MapPin, ArrowLeft, ShoppingCart, Phone, MessageCircle, X } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 const OrdersPage = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,10 +126,10 @@ const OrdersPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+              <Link to="/" className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
-              </button>
+              </Link>
               <div>
                 <h1 className="text-3xl font-bold text-white">My Orders</h1>
                 <p className="text-gray-400 mt-1">Track and manage your orders</p>

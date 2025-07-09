@@ -59,6 +59,7 @@ const CheckoutPage = () => {
     }
     
     setIsProcessing(false);
+    
   };
 
   const steps = [

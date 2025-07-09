@@ -6,35 +6,28 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const handleNavigation = (item) => {
-    if (item === 'About') {
-      // Scroll to about section
-      const aboutSection = document.getElementById('about');
-      if (aboutSection) {
-        aboutSection.scrollIntoView({ behavior: 'smooth' });
+    
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.profile-container')) {
+        setIsProfileOpen(false);
       }
-    } else if (item === 'Products') {
-      // Navigate to a general shop page or adjust as needed
-      navigate('/shop/kitchen'); // Default to kitchen or adjust based on your needs
-    } else if (item === 'Cart') {
-      // Navigate to cart page (adjust path as needed)
-      navigate('/cart');
-    } else if (item === 'Orders') {
-      // Navigate to orders page (adjust path as needed)
-      navigate('/orders');
-    }
-    setIsMenuOpen(false);
-  };
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    document.addEventListener('click', handleClickOutside);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   const categories = [
     'Kitchen',
@@ -111,6 +104,48 @@ const Header = () => {
         .category-item:hover::after {
           width: 100%;
         }
+        
+        .profile-dropdown {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: rgba(31, 41, 55, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(75, 85, 99, 0.5);
+          border-radius: 8px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+          min-width: 200px;
+          z-index: 1000;
+          opacity: 0;
+          transform: translateY(-10px);
+          transition: all 0.3s ease;
+          pointer-events: none;
+        }
+        
+        .profile-dropdown.show {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+        
+        .profile-dropdown-item {
+          padding: 12px 16px;
+          color: #d1d5db;
+          text-decoration: none;
+          display: block;
+          transition: all 0.3s ease;
+          border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+        }
+        
+        .profile-dropdown-item:last-child {
+          border-bottom: none;
+        }
+        
+        .profile-dropdown-item:hover {
+          background: rgba(59, 130, 246, 0.1);
+          color: var(--brand-primary);
+          transform: translateX(4px);
+        }
       `}</style>
       
       <header className="fixed top-0 w-full z-50 bg-gray-900 border-b border-gray-800">
@@ -144,14 +179,60 @@ const Header = () => {
             {/* Products & Icons */}
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4">
-                <Heart className="w-6 h-6 text-gray-300 brand-hover cursor-pointer transition-colors duration-300" />
-                <User className="w-6 h-6 text-gray-300 brand-hover cursor-pointer transition-colors duration-300" />
-                <div className="relative">
+                <Link to="/wishlist">
+                  <Heart className="w-6 h-6 text-gray-300 brand-hover cursor-pointer transition-colors duration-300" />
+                </Link>
+                <div className="relative profile-container">
+                  <button
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="bg-transparent border-none cursor-pointer"
+                  >
+                    <User className="w-6 h-6 text-gray-300 brand-hover cursor-pointer transition-colors duration-300" />
+                  </button>
+                  <div className={`profile-dropdown ${isProfileOpen ? 'show' : ''}`}>
+                    <Link 
+                      to="/profile" 
+                      className="profile-dropdown-item"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      My Profile
+                    </Link>
+                    <Link 
+                      to="/order" 
+                      className="profile-dropdown-item"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      My Orders
+                    </Link>
+                    <Link 
+                      to="/cart" 
+                      className="profile-dropdown-item"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      My Cart
+                    </Link>
+                    <Link 
+                      to="/wishlist" 
+                      className="profile-dropdown-item"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      My Wishlist
+                    </Link>
+                    <Link 
+                      to="/settings" 
+                      className="profile-dropdown-item"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      Settings
+                    </Link>
+                  </div>
+                </div>
+                <Link to="/cart" className="relative">
                   <ShoppingCart className="w-6 h-6 text-gray-300 brand-hover cursor-pointer transition-colors duration-300" />
                   <span className="absolute -top-2 -right-2 w-5 h-5 brand-gradient rounded-full flex items-center justify-center text-xs text-white font-bold">
                     3
                   </span>
-                </div>
+                </Link>
                 
                 {/* Mobile Menu Button */}
                 <button
@@ -198,21 +279,13 @@ const Header = () => {
                 />
               </div>
               
-              {/* Mobile Navigation */}
-              <button
-                onClick={() => handleNavigation('Products')}
-                className="block text-gray-300 hover:text-white transition-colors duration-300 bg-transparent border-none cursor-pointer w-full text-left py-2 font-medium"
-              >
-                Products
-              </button>
-              
               <div className="border-t border-gray-800 pt-4">
                 <h3 className="text-gray-400 text-sm font-medium mb-3">Categories</h3>
                 <div className="space-y-2">
                   {categories.map((category) => (
                     <Link
                       key={category}
-                      to={`/shop/${category.toLowerCase()}`}
+                      to={`/${category.toLowerCase()}`}
                       className="block text-gray-300 hover:text-white transition-colors duration-300 bg-transparent border-none cursor-pointer w-full text-left py-1 text-sm"
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -220,18 +293,6 @@ const Header = () => {
                     </Link>
                   ))}
                 </div>
-              </div>
-              
-              <div className="border-t border-gray-800 pt-4 space-y-2">
-                {['About', 'Cart', 'Orders'].map((item) => (
-                  <button
-                    key={item}
-                    onClick={() => handleNavigation(item)}
-                    className="block text-gray-300 hover:text-white transition-colors duration-300 bg-transparent border-none cursor-pointer w-full text-left py-2"
-                  >
-                    {item}
-                  </button>
-                ))}
               </div>
             </div>
           </div>

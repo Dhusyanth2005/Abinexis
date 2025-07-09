@@ -7,11 +7,12 @@ const orderRoutes = require('./routes/orderRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const fileUpload = require('express-fileupload');
-
+const cors = require('cors');
 dotenv.config();
 const app = express();
 
 app.use(express.json());
+app.use(cors('*')); // Allow all origins, adjust as needed for production
 // app.use(fileUpload({ useTempFiles: false })); // Disable temp files, handle in-memory
 app.use(fileUpload({ useTempFiles: false, limits: { fileSize: 5 * 1024 * 1024 } })); // 5MB limit
 app.use('/api/auth', authRoutes);

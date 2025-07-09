@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingCart, Trash2, Star, Plus, Minus, Share2, Filter } from 'lucide-react';
+import { Heart, ShoppingCart, Trash2, Star, Plus, Minus, Share2, Filter, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const WishlistPage = () => {
   const [wishlistItems, setWishlistItems] = useState([
@@ -164,10 +165,7 @@ const WishlistPage = () => {
     console.log(`Added ${quantity} of ${item.name} to cart`);
   };
 
-  const shareWishlist = () => {
-    // Share functionality would go here
-    console.log('Sharing wishlist...');
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -176,19 +174,19 @@ const WishlistPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
+              <Link 
+                to="/"
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors mr-2"
+              >
+                <ArrowLeft className="h-6 w-6 text-gray-300 hover:text-white" />
+              </Link>
               <Heart className="h-8 w-8" style={{ color: 'var(--brand-primary)' }} />
               <div>
                 <h1 className="text-2xl font-bold text-white">My Wishlist</h1>
                 <p className="text-sm text-gray-400">{filteredItems.length} items saved</p>
               </div>
             </div>
-            <button
-              onClick={shareWishlist}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
-            >
-              <Share2 className="h-4 w-4" />
-              <span>Share</span>
-            </button>
+
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, ShoppingCart, Star, Minus, Plus, Truck, Shield, RotateCcw, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ProductPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
@@ -8,7 +9,7 @@ const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [isWishlisted, setIsWishlisted] = useState(false);
-
+  const navigate = useNavigate();
   const productImages = [
     'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=600&fit=crop&crop=center',
     'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=600&h=600&fit=crop&crop=center',
@@ -69,6 +70,7 @@ const ProductPage = () => {
   const handleBuyNow = () => {
     // Buy now logic here
     console.log('Buy now:', { selectedSize, selectedColor, quantity });
+    navigate('/checkout');
   };
 
   return (
