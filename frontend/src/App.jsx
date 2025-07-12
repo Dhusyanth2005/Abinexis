@@ -9,6 +9,9 @@ import Order from './Pages/Order/Order';
 import Wishlist from './Pages/wishlist/Wishlist';
 import OrderDetail from './Pages/Order/OrderDetail';
 import AuthPage from './Pages/AuthPage';
+import ProfilePage from './Pages/Setting/ProfilePage';
+import SettingsPage from './Pages/Setting/SettingPage';
+import About from './Pages/about/About';
 
 function App() {
   return (
@@ -24,6 +27,9 @@ function App() {
           <Route path="/order" element={<Order />} />
           <Route path="/order/:id" element={<OrderDetail />} />
           <Route path="/wishlist" element={<Wishlist/>} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </BrowserRouter>
     </div>

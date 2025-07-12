@@ -4,7 +4,7 @@ const connectDB = require('./config/db');
 
 connectDB();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000; // Changed to 3000 to avoid ERR_UNSAFE_PORT
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

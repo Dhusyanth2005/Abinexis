@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           
           {/* Company Info */}
           <div className="space-y-6">
@@ -19,44 +19,54 @@ const Footer = () => {
               </p>
             </div>
             
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <Mail className="w-5 h-5 text-[#52B69A]" />
-                <span className="text-gray-300">contact@abinexis.com</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 text-[#52B69A]" />
-                <span className="text-gray-300">+1 (555) 123-4567</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <MapPin className="w-5 h-5 text-[#52B69A]" />
-                <span className="text-gray-300">Pollachi, Tamil Nadu, India</span>
+            <div>
+              <h4 className="text-lg font-semibold mb-4 text-white">Contact</h4>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Mail className="w-5 h-5 text-[#52B69A]" />
+                  <span className="text-gray-300">contact@abinexis.com</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="w-5 h-5 text-[#52B69A]" />
+                  <span className="text-gray-300">+1 (555) 123-4567</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <MapPin className="w-5 h-5 text-[#52B69A]" />
+                  <span className="text-gray-300">Pollachi, Tamil Nadu, India</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links & Customer Service */}
           <div>
-            <h4 className="text-lg font-semibold mb-6 text-white">Quick Links</h4>
-            <ul className="space-y-3">
-              <li><a href="#about" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">About Us</a></li>
-              <li><a href="#categories" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Categories</a></li>
-              <li><a href="#products" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Products</a></li>
-              <li><a href="#contact" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Contact</a></li>
-              <li><a href="#blog" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Blog</a></li>
-            </ul>
-          </div>
-
-          {/* Customer Service */}
-          <div>
-            <h4 className="text-lg font-semibold mb-6 text-white">Customer Service</h4>
-            <ul className="space-y-3">
-              <li><a href="#faq" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">FAQ</a></li>
-              <li><a href="#shipping" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Shipping Info</a></li>
-              <li><a href="#returns" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Returns</a></li>
-              <li><a href="#track" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Track Order</a></li>
-              <li><a href="#support" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Support</a></li>
-            </ul>
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold mb-6 text-white">Quick Links</h4>
+              <ul className="space-y-3">
+                <li><a href="/about" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">About Us</a></li>
+                <li><a href="/#categories" onClick={(e) => {
+                  // Check if we're already on the home page
+                  if (window.location.pathname === '/') {
+                    e.preventDefault();
+                    const element = document.getElementById('categories');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                  // If on another page, let the default href behavior work
+                }} className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Categories</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-lg font-semibold mb-6 text-white">Customer Service</h4>
+              <ul className="space-y-3">
+                <li><a href="/faq" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">FAQs</a></li>
+                <li><a href="/shipping" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Shipping Info</a></li>
+                <li><a href="/returns" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Return & Refund Policy</a></li>
+                <li><a href="/support" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Support</a></li>
+              </ul>
+            </div>
           </div>
 
           {/* Newsletter & Social */}

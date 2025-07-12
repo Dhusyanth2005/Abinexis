@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Truck, Shield, Headphones, RefreshCcw, ChevronDown, ChevronUp } from 'lucide-react';
-
+import { Truck, Shield, Headphones, RefreshCcw, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 const AboutSection = () => {
   const [isExpanded, setIsExpanded] = useState(false);
+    const Navigate = useNavigate();
+  const handleGoBack = () => {
+    Navigate("/");
+  };
 
   const features = [
     {
@@ -33,6 +37,21 @@ const AboutSection = () => {
 
   return (
     <section id="about" className="py-20 bg-gray-950">
+      {/* Header with Back Button */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={handleGoBack}
+            className="flex items-center gap-3 px-6 py-3 bg-gray-800/50 backdrop-blur-sm rounded-full border border-gray-700 hover:border-[#52B69A]/50 transition-all duration-300 group hover:bg-gray-800/70"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-400 group-hover:text-[#52B69A] transition-colors duration-300" />
+            <span className="text-gray-300 group-hover:text-white transition-colors duration-300">Back</span>
+          </button>
+          
+         
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Content and Image Container */}
         <div className="p-8 lg:p-12 mb-12">

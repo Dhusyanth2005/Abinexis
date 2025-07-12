@@ -1,27 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Star, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useParams,useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const ShopPage = () => {
   const { category } = useParams();
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState('Kitchen');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [discountFilter, setDiscountFilter] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  // Filter data from backend
+  const [categories, setCategories] = useState({});
+  const [brands, setBrands] = useState({});
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(12); // You can make this configurable
+  const [productsPerPage] = useState(12);
 
-  // Normalize category when params change
+  // Backend API base URL
+  const API_BASE_URL = 'http://localhost:3000/api';
+
+  // Fetch filters from backend
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/products/filters`);
+        if (!response.ok) throw new Error('Failed to fetch filters');
+        const data = await response.json();
+        
+        // Organize categories and subcategories
+        const categoryMap = {};
+        const brandMap = {};
+        
+        // Process subcategories
+        data.subCategories.forEach(item => {
+          if (!categoryMap[item.category]) {
+            categoryMap[item.category] = [];
+          }
+          if (!categoryMap[item.category].includes(item.subCategory)) {
+            categoryMap[item.category].push(item.subCategory);
+          }
+        });
+        
+        // Process brands
+        data.brands.forEach(item => {
+          if (!brandMap[item.category]) {
+            brandMap[item.category] = [];
+          }
+          if (!brandMap[item.category].includes(item.brand)) {
+            brandMap[item.category].push(item.brand);
+          }
+        });
+        
+        setCategories(categoryMap);
+        setBrands(brandMap);
+      } catch (err) {
+        console.error('Error fetching filters:', err);
+      }
+    };
+
+    fetchFilters();
+  }, []);
+
+  // Handle category normalization and data fetch
   useEffect(() => {
     const validCategories = [
       'Kitchen',
       'Health',
-      'Fashion',
+      'Clothing',
       'Beauty',
       'Electronics',
       'Fitness',
@@ -30,153 +83,79 @@ const ShopPage = () => {
       'Pets',
       'Stationery',
     ];
-    
+
     const normalizedCategory = category
       ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
       : 'Kitchen';
-      
+    
     const newCategory = validCategories.includes(normalizedCategory) 
       ? normalizedCategory 
       : 'Kitchen';
-      
-    if (newCategory !== selectedCategory) {
+
+    // Only update state if category actually changed
+    if (selectedCategory !== newCategory) {
+      // Reset filters and pagination when category changes
       setSelectedCategory(newCategory);
-      // Reset filters when category changes
       setSelectedSubCategory('');
       setSelectedBrands([]);
       setPriceRange([0, 1000]);
       setDiscountFilter('');
-      setCurrentPage(1); // Reset to first page
+      setCurrentPage(1);
+      setInitialLoad(true);
     }
-  }, [category, selectedCategory]);
+
+    // Fetch products
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        
+        // Prepare headers - include token if available
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/products?category=${newCategory}`, {
+          headers,
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+        
+        // Filter products immediately by category to prevent flash
+        const filteredData = data.filter(product => 
+          product.category.toLowerCase() === newCategory.toLowerCase()
+        );
+
+        // Delay state update by 500ms for better UX
+        setTimeout(() => {
+          setProducts(filteredData);
+          setInitialLoad(false);
+          setLoading(false);
+        }, 500);
+      } catch (err) {
+        // Delay error state update by 500ms
+        setTimeout(() => {
+          setError(err.message);
+          setInitialLoad(false);
+          setLoading(false);
+        }, 500);
+      }
+    };
+
+    fetchProducts();
+  }, [category]);
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedSubCategory, selectedBrands, priceRange, discountFilter]);
 
-  const categories = {
-    Kitchen: ['Cookware', 'Appliances', 'Utensils', 'Storage', 'Dinnerware'],
-    Health: ['Supplements', 'Fitness Equipment', 'Personal Care', 'Medical Devices'],
-    Fashion: ['Clothing', 'Accessories', 'Shoes', 'Bags'],
-    Beauty: ['Skincare', 'Makeup', 'Haircare', 'Fragrances'],
-    Electronics: ['Smartphones', 'Laptops', 'Audio', 'Gaming'],
-    Fitness: ['Equipment', 'Apparel', 'Accessories', 'Supplements'],
-    Spiritual: ['Books', 'Meditation', 'Crystals', 'Incense'],
-    Kids: ['Toys', 'Clothing', 'Books', 'Education'],
-    Pets: ['Food', 'Toys', 'Accessories', 'Health'],
-    Stationery: ['Notebooks', 'Pens', 'Art Supplies', 'Office'],
-  };
-
-  const brands = {
-    Kitchen: ['KitchenAid', 'Cuisinart', 'Instant Pot', 'Ninja', 'Breville'],
-    Health: ['Nature\'s Way', 'Optimum Nutrition', 'Fitbit', 'Omron'],
-    Fashion: ['Nike', 'Adidas', 'Levi\'s', 'Calvin Klein', 'Tommy Hilfiger'],
-    Beauty: ['L\'Oreal', 'Maybelline', 'Clinique', 'MAC', 'Revlon'],
-    Electronics: ['Apple', 'Samsung', 'Sony', 'LG', 'HP'],
-    Fitness: ['Under Armour', 'Reebok', 'Puma', 'Adidas', 'Nike'],
-    Spiritual: ['Hay House', 'Llewellyn', 'Sounds True', 'Chopra'],
-    Kids: ['LEGO', 'Fisher-Price', 'Mattel', 'Hasbro', 'Melissa & Doug'],
-    Pets: ['Hill\'s', 'Royal Canin', 'Purina', 'Blue Buffalo', 'KONG'],
-    Stationery: ['Moleskine', 'Pilot', 'Staedtler', 'Faber-Castell', 'BIC'],
-  };
-
-  const sampleProducts = [
-    // Kitchen
-    { id: 1, name: 'Premium Non-Stick Pan', category: 'Kitchen', subCategory: 'Cookware', brand: 'KitchenAid', price: 89.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 2, name: 'Instant Pot Duo', category: 'Kitchen', subCategory: 'Appliances', brand: 'Instant Pot', price: 149.99, rating: 4.8, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 3, name: 'Ceramic Dinnerware Set', category: 'Kitchen', subCategory: 'Dinnerware', brand: 'Cuisinart', price: 79.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 25 },
-    { id: 4, name: 'Stainless Steel Utensils', category: 'Kitchen', subCategory: 'Utensils', brand: 'KitchenAid', price: 39.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 18 },
-    { id: 5, name: 'Glass Storage Containers', category: 'Kitchen', subCategory: 'Storage', brand: 'Cuisinart', price: 59.99, rating: 4.2, image: '/api/placeholder/200/200', discount: 22 },
-    { id: 6, name: 'Electric Kettle', category: 'Kitchen', subCategory: 'Appliances', brand: 'Breville', price: 129.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 7, name: 'Cast Iron Skillet', category: 'Kitchen', subCategory: 'Cookware', brand: 'Ninja', price: 79.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 25 },
-    { id: 8, name: 'Silicone Baking Mat', category: 'Kitchen', subCategory: 'Utensils', brand: 'KitchenAid', price: 24.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 30 },
-    { id: 9, name: 'Ceramic Plates Set', category: 'Kitchen', subCategory: 'Dinnerware', brand: 'Cuisinart', price: 89.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 10, name: 'Vacuum Storage Bags', category: 'Kitchen', subCategory: 'Storage', brand: 'Instant Pot', price: 29.99, rating: 4.1, image: '/api/placeholder/200/200', discount: 35 },
-    { id: 56, name: 'Chef\'s Knife Set', category: 'Kitchen', subCategory: 'Utensils', brand: 'KitchenAid', price: 199.99, rating: 4.8, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 57, name: 'Stand Mixer', category: 'Kitchen', subCategory: 'Appliances', brand: 'KitchenAid', price: 349.99, rating: 4.9, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 58, name: 'Bamboo Cutting Board', category: 'Kitchen', subCategory: 'Utensils', brand: 'Cuisinart', price: 34.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 59, name: 'Food Processor', category: 'Kitchen', subCategory: 'Appliances', brand: 'Ninja', price: 179.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 18 },
-    { id: 60, name: 'Spice Rack Set', category: 'Kitchen', subCategory: 'Storage', brand: 'Breville', price: 45.99, rating: 4.2, image: '/api/placeholder/200/200', discount: 25 },
-    { id: 61, name: 'Non-Stick Cookware Set', category: 'Kitchen', subCategory: 'Cookware', brand: 'KitchenAid', price: 299.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 30 },
-    { id: 62, name: 'Coffee Maker', category: 'Kitchen', subCategory: 'Appliances', brand: 'Breville', price: 89.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 63, name: 'Measuring Cup Set', category: 'Kitchen', subCategory: 'Utensils', brand: 'Cuisinart', price: 19.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 64, name: 'Wine Glasses Set', category: 'Kitchen', subCategory: 'Dinnerware', brand: 'Ninja', price: 49.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 22 },
-    { id: 65, name: 'Pantry Organization', category: 'Kitchen', subCategory: 'Storage', brand: 'Instant Pot', price: 69.99, rating: 4.1, image: '/api/placeholder/200/200', discount: 28 },
-    { id: 66, name: 'Blender Pro', category: 'Kitchen', subCategory: 'Appliances', brand: 'Ninja', price: 249.99, rating: 4.8, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 67, name: 'Stainless Steel Pots', category: 'Kitchen', subCategory: 'Cookware', brand: 'KitchenAid', price: 159.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 25 },
-    { id: 68, name: 'Kitchen Scale', category: 'Kitchen', subCategory: 'Utensils', brand: 'Breville', price: 39.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 18 },
-    { id: 69, name: 'Dinner Plates Set', category: 'Kitchen', subCategory: 'Dinnerware', brand: 'Cuisinart', price: 79.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 70, name: 'Refrigerator Organizer', category: 'Kitchen', subCategory: 'Storage', brand: 'Instant Pot', price: 35.99, rating: 4.2, image: '/api/placeholder/200/200', discount: 30 },
-    { id: 71, name: 'Toaster Oven', category: 'Kitchen', subCategory: 'Appliances', brand: 'Breville', price: 199.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 72, name: 'Wok Pan', category: 'Kitchen', subCategory: 'Cookware', brand: 'Ninja', price: 89.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 73, name: 'Serving Utensils', category: 'Kitchen', subCategory: 'Utensils', brand: 'KitchenAid', price: 29.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 25 },
-    { id: 74, name: 'Soup Bowls Set', category: 'Kitchen', subCategory: 'Dinnerware', brand: 'Cuisinart', price: 54.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 18 },
-    { id: 75, name: 'Drawer Organizer', category: 'Kitchen', subCategory: 'Storage', brand: 'Instant Pot', price: 24.99, rating: 4.1, image: '/api/placeholder/200/200', discount: 35 },
-    // Health
-    { id: 11, name: 'Multivitamin Tablets', category: 'Health', subCategory: 'Supplements', brand: "Nature's Way", price: 19.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 12, name: 'Treadmill Pro', category: 'Health', subCategory: 'Fitness Equipment', brand: 'Fitbit', price: 499.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 13, name: 'Electric Toothbrush', category: 'Health', subCategory: 'Personal Care', brand: 'Omron', price: 59.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 14, name: 'Blood Pressure Monitor', category: 'Health', subCategory: 'Medical Devices', brand: 'Omron', price: 79.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 15, name: 'Protein Powder', category: 'Health', subCategory: 'Supplements', brand: 'Optimum Nutrition', price: 39.99, rating: 4.8, image: '/api/placeholder/200/200', discount: 18 },
-
-    // Fashion
-    { id: 16, name: 'Denim Jacket', category: 'Fashion', subCategory: 'Clothing', brand: "Levi's", price: 89.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 17, name: 'Leather Watch', category: 'Fashion', subCategory: 'Accessories', brand: 'Tommy Hilfiger', price: 149.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 18, name: 'Running Shoes', category: 'Fashion', subCategory: 'Shoes', brand: 'Nike', price: 129.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 25 },
-    { id: 19, name: 'Canvas Tote Bag', category: 'Fashion', subCategory: 'Bags', brand: 'Calvin Klein', price: 69.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 20, name: 'Sneakers', category: 'Fashion', subCategory: 'Shoes', brand: 'Adidas', price: 99.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 18 },
-
-    // Beauty
-    { id: 21, name: 'Moisturizing Cream', category: 'Beauty', subCategory: 'Skincare', brand: "L'Oreal", price: 24.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 22, name: 'Lipstick Set', category: 'Beauty', subCategory: 'Makeup', brand: 'Maybelline', price: 19.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 23, name: 'Shampoo & Conditioner', category: 'Beauty', subCategory: 'Haircare', brand: 'Revlon', price: 29.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 24, name: 'Perfume', category: 'Beauty', subCategory: 'Fragrances', brand: 'MAC', price: 59.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 25, name: 'Facial Cleanser', category: 'Beauty', subCategory: 'Skincare', brand: 'Clinique', price: 34.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 15 },
-
-    // Electronics
-    { id: 26, name: 'Smartphone 13', category: 'Electronics', subCategory: 'Smartphones', brand: 'Apple', price: 799.99, rating: 4.8, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 27, name: 'Ultrabook Laptop', category: 'Electronics', subCategory: 'Laptops', brand: 'HP', price: 999.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 28, name: 'Wireless Earbuds', category: 'Electronics', subCategory: 'Audio', brand: 'Sony', price: 149.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 29, name: 'Gaming Console', category: 'Electronics', subCategory: 'Gaming', brand: 'Sony', price: 499.99, rating: 4.9, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 30, name: 'Smart TV', category: 'Electronics', subCategory: 'Audio', brand: 'LG', price: 599.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 18 },
-
-    // Fitness
-    { id: 31, name: 'Yoga Mat', category: 'Fitness', subCategory: 'Equipment', brand: 'Under Armour', price: 39.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 32, name: 'Running Shorts', category: 'Fitness', subCategory: 'Apparel', brand: 'Nike', price: 29.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 33, name: 'Fitness Tracker', category: 'Fitness', subCategory: 'Accessories', brand: 'Puma', price: 99.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 34, name: 'Whey Protein', category: 'Fitness', subCategory: 'Supplements', brand: 'Adidas', price: 49.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 35, name: 'Dumbb set', category: 'Fitness', subCategory: 'Equipment', brand: 'Reebok', price: 199.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 18 },
-
-    // Spiritual
-    { id: 36, name: 'Meditation Guide Book', category: 'Spiritual', subCategory: 'Books', brand: 'Hay House', price: 14.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 37, name: 'Meditation Cushion', category: 'Spiritual', subCategory: 'Meditation', brand: 'Sounds True', price: 39.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 38, name: 'Amethyst Crystal', category: 'Spiritual', subCategory: 'Crystals', brand: 'Llewellyn', price: 24.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 39, name: 'Sandalwood Incense', category: 'Spiritual', subCategory: 'Incense', brand: 'Chopra', price: 9.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 40, name: 'Spiritual Journal', category: 'Spiritual', subCategory: 'Books', brand: 'Hay House', price: 19.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 15 },
-
-    // Kids
-    { id: 41, name: 'Building Blocks Set', category: 'Kids', subCategory: 'Toys', brand: 'LEGO', price: 49.99, rating: 4.8, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 42, name: 'Kids Hoodie', category: 'Kids', subCategory: 'Clothing', brand: 'Melissa & Doug', price: 29.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 43, name: 'Picture Book', category: 'Kids', subCategory: 'Books', brand: 'Mattel', price: 14.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 44, name: 'Learning Tablet', category: 'Kids', subCategory: 'Education', brand: 'Fisher-Price', price: 59.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 45, name: 'Puzzle Set', category: 'Kids', subCategory: 'Toys', brand: 'Hasbro', price: 19.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 18 },
-
-    // Pets
-    { id: 46, name: 'Premium Dog Food', category: 'Pets', subCategory: 'Food', brand: 'Hill\'s', price: 39.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 47, name: 'Chew Toy', category: 'Pets', subCategory: 'Toys', brand: 'KONG', price: 14.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 48, name: 'Pet Collar', category: 'Pets', subCategory: 'Accessories', brand: 'Blue Buffalo', price: 19.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 49, name: 'Pet Health Supplement', category: 'Pets', subCategory: 'Health', brand: 'Purina', price: 24.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 50, name: 'Cat Food', category: 'Pets', subCategory: 'Food', brand: 'Royal Canin', price: 34.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 18 },
-
-    // Stationery
-    { id: 51, name: 'Leather Notebook', category: 'Stationery', subCategory: 'Notebooks', brand: 'Moleskine', price: 24.99, rating: 4.6, image: '/api/placeholder/200/200', discount: 10 },
-    { id: 52, name: 'Gel Pens Set', category: 'Stationery', subCategory: 'Pens', brand: 'Pilot', price: 14.99, rating: 4.5, image: '/api/placeholder/200/200', discount: 15 },
-    { id: 53, name: 'Watercolor Set', category: 'Stationery', subCategory: 'Art Supplies', brand: 'Faber-Castell', price: 29.99, rating: 4.7, image: '/api/placeholder/200/200', discount: 12 },
-    { id: 54, name: 'Desk Organizer', category: 'Stationery', subCategory: 'Office', brand: 'BIC', price: 19.99, rating: 4.4, image: '/api/placeholder/200/200', discount: 20 },
-    { id: 55, name: 'Sketchbook', category: 'Stationery', subCategory: 'Notebooks', brand: 'Staedtler', price: 12.99, rating: 4.3, image: '/api/placeholder/200/200', discount: 18 },
-  ];
- const handleProductClick = (category, productId) => {
+  const handleProductClick = (category, productId) => {
     navigate(`/shop/${category.toLowerCase()}/${productId}`);
   };
 
@@ -187,14 +166,18 @@ const ShopPage = () => {
   };
 
   const getFilteredProducts = () => {
-    let filtered = sampleProducts.filter((product) => product.category === selectedCategory);
+    let filtered = [...products];
 
     if (selectedSubCategory) {
-      filtered = filtered.filter((product) => product.subCategory === selectedSubCategory);
+      filtered = filtered.filter((product) => 
+        product.subCategory && product.subCategory.toLowerCase() === selectedSubCategory.toLowerCase()
+      );
     }
 
     if (selectedBrands.length > 0) {
-      filtered = filtered.filter((product) => selectedBrands.includes(product.brand));
+      filtered = filtered.filter((product) => 
+        product.brand && selectedBrands.includes(product.brand)
+      );
     }
 
     filtered = filtered.filter(
@@ -203,7 +186,12 @@ const ShopPage = () => {
 
     if (discountFilter) {
       const minDiscount = parseInt(discountFilter);
-      filtered = filtered.filter((product) => product.discount >= minDiscount);
+      filtered = filtered.filter((product) => {
+        const discount = product.discountPrice
+          ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+          : 0;
+        return discount >= minDiscount;
+      });
     }
 
     return filtered;
@@ -269,10 +257,47 @@ const ShopPage = () => {
     setDiscountFilter('');
   };
 
+  // Check if any filters are applied
+  const hasFiltersApplied = () => {
+    return selectedSubCategory !== '' || 
+           selectedBrands.length > 0 || 
+           priceRange[0] !== 0 || 
+           priceRange[1] !== 1000 || 
+           discountFilter !== '';
+  };
+
   const totalPages = getTotalPages();
   const totalProducts = getFilteredProducts().length;
   const startProduct = (currentPage - 1) * productsPerPage + 1;
   const endProduct = Math.min(currentPage * productsPerPage, totalProducts);
+
+  // Show loading state during initial load or when switching categories
+  if (loading || initialLoad) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white pt-32 pb-16">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <span className="ml-3 text-lg">Loading {selectedCategory || 'products'}...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white pt-32 pb-16">
+        <div className="text-center py-10">
+          <div className="text-red-500 text-lg mb-4">{error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pt-32 pb-16">
@@ -313,6 +338,7 @@ const ShopPage = () => {
                 <div className="w-full h-px bg-gray-800 mb-4"></div>
               </div>
 
+              {/* Subcategories */}
               <div>
                 <h4 className="text-md font-medium mb-4 text-gray-300">Subcategories</h4>
                 <div className="space-y-2">
@@ -352,7 +378,8 @@ const ShopPage = () => {
                 </div>
               </div>
 
-              {brands[selectedCategory] && (
+              {/* Brands */}
+              {brands[selectedCategory] && brands[selectedCategory].length > 0 && (
                 <div>
                   <h4 className="text-md font-medium mb-4 text-gray-300">Brands</h4>
                   <div className="space-y-2">
@@ -375,6 +402,7 @@ const ShopPage = () => {
                 </div>
               )}
 
+              {/* Price Range */}
               <div>
                 <h4 className="text-md font-medium mb-4 text-gray-300">Price Range</h4>
                 <div className="space-y-4">
@@ -403,6 +431,7 @@ const ShopPage = () => {
                 </div>
               </div>
 
+              {/* Discount Filter */}
               <div>
                 <h4 className="text-md font-medium mb-4 text-gray-300">Discount</h4>
                 <div className="space-y-2">
@@ -473,22 +502,23 @@ const ShopPage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                     {products.map((product) => (
                       <div
-                        key={product.id}
-                        className="group relative bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors"
-                        onClick={() => handleProductClick(product.category, product.id)}
+                        key={product._id}
+                        className="group relative bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors cursor-pointer"
+                        onClick={() => handleProductClick(product.category, product._id)}
                       >
                         <div className="aspect-square bg-gray-800 relative overflow-hidden">
                           <img
-                            src={product.image}
+                            src={product.images?.[0] || '/api/placeholder/200/200'}
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { e.target.src = '/api/placeholder/200/200'; }}
                           />
-                          {product.discount > 0 && (
+                          {product.discountPrice && product.discountPrice > 0 && (
                             <div
                               className="absolute top-2 left-2 text-white px-2 py-1 rounded text-xs font-bold"
                               style={{ backgroundColor: 'var(--brand-accent)' }}
                             >
-                              -{product.discount}%
+                              -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
                             </div>
                           )}
                           <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-black bg-opacity-50 rounded-full hover:bg-opacity-75">
@@ -505,7 +535,7 @@ const ShopPage = () => {
                                 <Star
                                   key={i}
                                   className={`w-4 h-4 ${
-                                    i < Math.floor(product.rating)
+                                    i < Math.floor(product.rating || 0)
                                       ? 'text-yellow-400 fill-current'
                                       : 'text-gray-600'
                                   }`}
@@ -513,17 +543,17 @@ const ShopPage = () => {
                               ))}
                             </div>
                             <span className="text-sm text-gray-400 ml-2">
-                              ({product.rating})
+                              ({product.rating || 0})
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                               <span className="text-lg font-bold text-white">
-                                ${product.price}
+                                ${product.discountPrice && product.discountPrice > 0 ? product.discountPrice : product.price}
                               </span>
-                              {product.discount > 0 && (
+                              {product.discountPrice && product.discountPrice > 0 && (
                                 <span className="text-sm text-gray-400 line-through">
-                                  ${(product.price / (1 - product.discount / 100)).toFixed(2)}
+                                  ${product.price}
                                 </span>
                               )}
                             </div>
@@ -535,6 +565,26 @@ const ShopPage = () => {
                 </div>
               ))}
             </div>
+
+            {/* No Products Message */}
+            {totalProducts === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-4">
+                  No products found in {selectedCategory}
+                  {selectedSubCategory && ` - ${selectedSubCategory}`}
+                </div>
+                {/* Only show Clear Filters button if filters are applied */}
+                {hasFiltersApplied() && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 rounded hover:opacity-90 transition-all text-white"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -603,7 +653,7 @@ const ShopPage = () => {
         </div>
       </div>
     </div>
-  );
-};
+    );
+  };
 
 export default ShopPage;

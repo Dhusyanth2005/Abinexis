@@ -8,13 +8,34 @@ const cartRoutes = require('./routes/cartRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
+
 dotenv.config();
 const app = express();
 
+// Middleware
 app.use(express.json());
-app.use(cors('*')); // Allow all origins, adjust as needed for production
-// app.use(fileUpload({ useTempFiles: false })); // Disable temp files, handle in-memory
-app.use(fileUpload({ useTempFiles: false, limits: { fileSize: 5 * 1024 * 1024 } })); // 5MB limit
+app.use(fileUpload({ useTempFiles: false })); // Handle uploads in-memory
+
+// Custom middleware to parse nested form-data fields (e.g., features[size])
+app.use('/api/products', (req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PUT') {
+    const features = {};
+    for (let key in req.body) {
+      if (key.startsWith('features[') && key.endsWith(']')) {
+        const featureKey = key.slice(9, -1); // Extract key between 'features[' and ']'
+        features[featureKey] = req.body[key];
+        delete req.body[key]; // Remove the nested field
+      }
+    }
+    if (Object.keys(features).length > 0) {
+      req.body.features = features;
+    }
+  }
+  next();
+});
+
+app.use(cors('*')); // Allow requests from React dev server
+
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
