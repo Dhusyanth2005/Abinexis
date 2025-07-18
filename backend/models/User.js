@@ -23,6 +23,6 @@ const userSchema = new mongoose.Schema({
   addresses: [addressSchema] // Array of addresses
 }, { timestamps: true });
 
-userSchema.index({ email: 1 });
+// userSchema.index({ email: 1 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -318,7 +318,7 @@ const searchProducts = async (req, res) => {
   }
 
   try {
-    // Search products by name, description, brand, or category
+    // Search products by name, description, brand, category, or subCategory
     const products = await Product.find({
       $or: [
         { name: { $regex: query, $options: 'i' } },
@@ -327,33 +327,26 @@ const searchProducts = async (req, res) => {
         { category: { $regex: query, $options: 'i' } },
         { subCategory: { $regex: query, $options: 'i' } },
       ]
-    }).lean();
+    })
+    .select('_id name category brand subCategory')
+    .limit(5)
+    .lean();
 
     if (products.length > 0) {
-      // Return the first matching product with its effective price
-      const productWithPrice = {
-        ...products[0],
-        effectivePrice: products[0].effectivePrice ? products[0].effectivePrice({}) : 0
-      };
-      return res.json({ product: productWithPrice });
+      const suggestions = products.map(product => ({
+        _id: product._id,
+        name: product.name,
+        category: product.category,
+        display: `${product.name} (${product.category})`
+      }));
+      return res.json({ suggestions });
     }
 
-    // If no product is found, try to match a subcategory
-    const subCategory = await Product.findOne({
-      subCategory: { $regex: query, $options: 'i' }
-    }).select('category subCategory').lean();
-
-    if (subCategory) {
-      return res.json({ subCategory });
-    }
-
-    // If neither product nor subcategory is found
-    res.json({ message: 'No matching products or subcategories found' });
+    res.json({ message: 'No matching products found' });
   } catch (error) {
     res.status(500).json({ message: 'Error searching products', error: error.message });
   }
 };
-
 module.exports = {
   getProducts,
   getProductById,

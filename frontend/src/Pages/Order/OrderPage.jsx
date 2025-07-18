@@ -1,65 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, Truck, CheckCircle, Clock, Search, Filter, ChevronDown, Eye, MapPin, ArrowLeft, ShoppingCart, Phone, MessageCircle, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
 const OrdersPage = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [trackingPopup, setTrackingPopup] = useState(null);
-
-  // Sample orders data
-  const orders = [
-    {
-      id: 'ORD-2024-001',
-      date: '2024-12-15',
-      status: 'delivered',
-      total: 299.99,
-      items: [
-        { name: 'Wireless Headphones', price: 199.99, quantity: 1, image: '/api/placeholder/60/60' },
-        { name: 'Phone Case', price: 29.99, quantity: 1, image: '/api/placeholder/60/60' },
-        { name: 'Screen Protector', price: 19.99, quantity: 1, image: '/api/placeholder/60/60' }
-      ],
-      tracking: 'TRK123456789',
-      deliveryAddress: '123 Main St, New York, NY 10001'
-    },
-    {
-      id: 'ORD-2024-002',
-      date: '2024-12-20',
-      status: 'shipped',
-      total: 89.99,
-      items: [
-        { name: 'Bluetooth Speaker', price: 89.99, quantity: 1, image: '/api/placeholder/60/60' }
-      ],
-      tracking: 'TRK987654321',
-      deliveryAddress: '456 Oak Ave, Los Angeles, CA 90210'
-    },
-    {
-      id: 'ORD-2024-003',
-      date: '2024-12-22',
-      status: 'processing',
-      total: 159.97,
-      items: [
-        { name: 'Laptop Stand', price: 79.99, quantity: 1, image: '/api/placeholder/60/60' },
-        { name: 'Wireless Mouse', price: 79.98, quantity: 1, image: '/api/placeholder/60/60' }
-      ],
-      tracking: null,
-      deliveryAddress: '789 Pine Rd, Chicago, IL 60601'
-    },
-    {
-      id: 'ORD-2024-004',
-      date: '2024-12-25',
-      status: 'cancelled',
-      total: 49.99,
-      items: [
-        { name: 'USB Cable', price: 24.99, quantity: 2, image: '/api/placeholder/60/60' }
-      ],
-      tracking: null,
-      deliveryAddress: '321 Elm St, Miami, FL 33101'
-    }
-  ];
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Support contact number
   const supportPhone = '+91 82480 38528';
+
+  // Fetch user orders on component mount
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('http://localhost:5000/api/orders', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth setup
+          },
+        });
+        setOrders(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        setError('Failed to load orders. Please try again later.');
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -91,19 +68,40 @@ const OrdersPage = () => {
     }
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesFilter = selectedFilter === 'all' || order.status === selectedFilter;
-    const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Filter orders based on status and search query
+  const filteredOrders = orders.filter((order) => {
+    const matchesFilter = selectedFilter === 'all' || order.orderStatus === selectedFilter;
+    const matchesSearch =
+      order._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.orderItems.some((item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     return matchesFilter && matchesSearch;
   });
 
+  // Filter options with counts
   const filterOptions = [
     { value: 'all', label: 'All Orders', count: orders.length },
-    { value: 'delivered', label: 'Delivered', count: orders.filter(o => o.status === 'delivered').length },
-    { value: 'shipped', label: 'Shipped', count: orders.filter(o => o.status === 'shipped').length },
-    { value: 'processing', label: 'Processing', count: orders.filter(o => o.status === 'processing').length },
-    { value: 'cancelled', label: 'Cancelled', count: orders.filter(o => o.status === 'cancelled').length }
+    {
+      value: 'delivered',
+      label: 'Delivered',
+      count: orders.filter((o) => o.orderStatus === 'delivered').length,
+    },
+    {
+      value: 'shipped',
+      label: 'Shipped',
+      count: orders.filter((o) => o.orderStatus === 'shipped').length,
+    },
+    {
+      value: 'processing',
+      label: 'Processing',
+      count: orders.filter((o) => o.orderStatus === 'processing').length,
+    },
+    {
+      value: 'cancelled',
+      label: 'Cancelled',
+      count: orders.filter((o) => o.orderStatus === 'cancelled').length,
+    },
   ];
 
   const handleTrackOrder = (order) => {
@@ -111,12 +109,18 @@ const OrdersPage = () => {
   };
 
   const handleWhatsAppMessage = (orderId) => {
-    const message = encodeURIComponent(`Hi, I need help with my order ${orderId}. Could you please provide an update on the tracking status?`);
+    const message = encodeURIComponent(
+      `Hi, I need help with my order ${orderId}. Could you please provide an update on the tracking status?`
+    );
     window.open(`https://wa.me/${supportPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
   };
 
   const handlePhoneCall = () => {
     window.open(`tel:${supportPhone}`, '_self');
+  };
+
+  const handleViewDetails = (orderId) => {
+    navigate(`/order/${orderId}`);
   };
 
   return (
@@ -126,7 +130,10 @@ const OrdersPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+              <Link
+                to="/"
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
               </Link>
@@ -136,16 +143,14 @@ const OrdersPage = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button 
+              <Link
+                to="/products"
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors"
-                style={{ 
-                  backgroundColor: 'var(--brand-primary)',
-                  color: 'white'
-                }}
+                style={{ backgroundColor: 'var(--brand-primary)', color: 'white' }}
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>Continue Shopping</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -194,7 +199,7 @@ const OrdersPage = () => {
                     }`}
                     style={{
                       borderColor: selectedFilter === option.value ? 'var(--brand-primary)' : undefined,
-                      backgroundColor: selectedFilter === option.value ? 'rgba(82, 182, 154, 0.1)' : undefined
+                      backgroundColor: selectedFilter === option.value ? 'rgba(82, 182, 154, 0.1)' : undefined,
                     }}
                   >
                     <div className="text-sm font-medium">{option.label}</div>
@@ -208,7 +213,18 @@ const OrdersPage = () => {
 
         {/* Orders List */}
         <div className="space-y-6">
-          {filteredOrders.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-400 mx-auto"></div>
+              <p className="text-gray-400 mt-4">Loading orders...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-400 mb-2">Error</h3>
+              <p className="text-gray-500">{error}</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-400 mb-2">No orders found</h3>
@@ -216,30 +232,37 @@ const OrdersPage = () => {
             </div>
           ) : (
             filteredOrders.map((order) => (
-              <div key={order.id} className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden hover:border-gray-700 transition-colors">
+              <div
+                key={order._id}
+                className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden hover:border-gray-700 transition-colors"
+              >
                 {/* Order Header */}
                 <div className="px-6 py-4 border-b border-gray-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
-                        {getStatusIcon(order.status)}
-                        <span className="font-medium text-white">{order.id}</span>
+                        {getStatusIcon(order.orderStatus)}
+                        <span className="font-medium text-white">{order._id}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span
                           className="px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wide"
                           style={{
-                            backgroundColor: `${getStatusColor(order.status)}20`,
-                            color: getStatusColor(order.status)
+                            backgroundColor: `${getStatusColor(order.orderStatus)}20`,
+                            color: getStatusColor(order.orderStatus),
                           }}
                         >
-                          {order.status}
+                          {order.orderStatus}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-white">${order.total.toFixed(2)}</div>
-                      <div className="text-sm text-gray-400">{new Date(order.date).toLocaleDateString()}</div>
+                      <div className="text-lg font-semibold text-white">
+                        ${order.priceSummary.total.toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -247,10 +270,18 @@ const OrdersPage = () => {
                 {/* Order Items */}
                 <div className="px-6 py-4">
                   <div className="space-y-3">
-                    {order.items.map((item, index) => (
+                    {order.orderItems.map((item, index) => (
                       <div key={index} className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-                          <Package className="w-6 h-6 text-gray-400" />
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <Package className="w-6 h-6 text-gray-400" />
+                          )}
                         </div>
                         <div className="flex-1">
                           <div className="font-medium text-white">{item.name}</div>
@@ -268,7 +299,9 @@ const OrdersPage = () => {
                 <div className="px-6 py-4 bg-gray-800 bg-opacity-50">
                   <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-300">{order.deliveryAddress}</span>
+                    <span className="text-sm text-gray-300">
+                      {`${order.shippingInfo.address}, ${order.shippingInfo.city}, ${order.shippingInfo.state} ${order.shippingInfo.postalCode}`}
+                    </span>
                   </div>
                 </div>
 
@@ -276,30 +309,27 @@ const OrdersPage = () => {
                 <div className="px-6 py-4 border-t border-gray-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <button className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+                      <button
+                        onClick={() => handleViewDetails(order._id)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
                         <Eye className="w-4 h-4" />
                         <span className="text-sm">View Details</span>
                       </button>
-                      {order.status === 'delivered' && (
-                        <button 
+                      {order.orderStatus === 'delivered' && (
+                        <button
                           className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                          style={{ 
-                            backgroundColor: 'var(--brand-primary)',
-                            color: 'white'
-                          }}
+                          style={{ backgroundColor: 'var(--brand-primary)', color: 'white' }}
                         >
                           Reorder
                         </button>
                       )}
                     </div>
-                    {order.tracking && (
-                      <button 
+                    {order.orderStatus !== 'cancelled' && order.orderStatus !== 'processing' && (
+                      <button
                         onClick={() => handleTrackOrder(order)}
                         className="px-4 py-2 rounded-lg border transition-colors text-sm"
-                        style={{ 
-                          borderColor: 'var(--brand-secondary)',
-                          color: 'var(--brand-secondary)'
-                        }}
+                        style={{ borderColor: 'var(--brand-secondary)', color: 'var(--brand-secondary)' }}
                       >
                         Track Order
                       </button>
@@ -325,10 +355,19 @@ const OrdersPage = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="mb-6">
-              <p className="text-gray-300 mb-2">Order ID: <span className="font-medium">{trackingPopup.id}</span></p>
-              <p className="text-gray-300 mb-4">Tracking: <span className="font-medium">{trackingPopup.tracking}</span></p>
+              <p className="text-gray-300 mb-2">
+                Order ID: <span className="font-medium">{trackingPopup._id}</span>
+              </p>
+              <p className="text-gray-300 mb-4">
+                Tracking:{' '}
+                <span className="font-medium">
+                  {trackingPopup.orderStatus === 'delivered' || trackingPopup.orderStatus === 'shipped'
+                    ? `TRK${trackingPopup._id.slice(-9)}`
+                    : 'Not available yet'}
+                </span>
+              </p>
               <p className="text-gray-400 text-sm">Need help with your order? Contact our support team:</p>
             </div>
 
@@ -343,7 +382,7 @@ const OrdersPage = () => {
               </button>
 
               <button
-                onClick={() => handleWhatsAppMessage(trackingPopup.id)}
+                onClick={() => handleWhatsAppMessage(trackingPopup._id)}
                 className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
               >
                 <MessageCircle className="w-5 h-5 text-white" />

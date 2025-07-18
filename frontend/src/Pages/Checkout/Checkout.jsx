@@ -7,7 +7,7 @@ const API_URL = 'http://localhost:5000';
 
 const CheckoutPage = () => {
   const { state } = useLocation();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [orderItems, setOrderItems] = useState(state?.orderItems || []);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -38,14 +38,25 @@ const CheckoutPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [initialLoading, setInitialLoading] = useState(true); // Added for 2-second delay
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // Initial 2-second loading delay after header
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialLoading(false);
-    }, 500); 
-    return () => clearTimeout(timer); // Cleanup timer on unmount
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   // Fetch user data including addresses
@@ -99,16 +110,15 @@ const CheckoutPage = () => {
                 price: effectivePrice || item.price || 0,
                 originalPrice: normalPrice || item.originalPrice || 0,
                 shippingCost: shippingCost || item.shippingCost || 0,
-                inStock: item.inStock !== undefined ? item.inStock : true, // Preserve inStock if provided
+                inStock: item.inStock !== undefined ? item.inStock : true,
               };
             } catch (err) {
               console.error(`Error fetching price details for item ${item.id}:`, err);
-              return item; // Fallback to existing item data
+              return item;
             }
           })
         );
         setOrderItems(updatedItems);
-        console.log('Updated orderItems with price details:', updatedItems);
       } catch (err) {
         console.error('Error fetching price details:', err);
         setError('Error fetching price details');
@@ -146,7 +156,7 @@ const CheckoutPage = () => {
   const handleSaveNewAddress = async () => {
     try {
       const updatedAddresses = [
-        ...savedAddresses.map(addr => ({ ...addr, isActive: false })), // Deactivate all existing addresses
+        ...savedAddresses.map(addr => ({ ...addr, isActive: false })),
         { ...newAddress, isActive: true },
       ];
       await axios.put(
@@ -196,11 +206,121 @@ const CheckoutPage = () => {
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      if (formData.paymentMethod === 'razorpay') {
-        alert('Redirecting to Razorpay payment gateway...');
-      } else if (formData.paymentMethod === 'cod') {
+      const orderData = {
+        personalInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email
+        },
+        orderItems: orderItems.map(item => ({
+          product: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          shippingCost: item.shippingCost,
+          image: item.image,
+          filters: item.filters
+        })),
+        shippingInfo: {
+          type: selectedAddress.type,
+          address: selectedAddress.address,
+          city: selectedAddress.city,
+          state: selectedAddress.state,
+          postalCode: selectedAddress.zipCode,
+          phone: selectedAddress.phone
+        },
+        paymentMethod: formData.paymentMethod,
+        priceSummary: {
+          subtotal,
+          savings,
+          shippingCost: totalShipping,
+          total
+        }
+      };
+
+      if (formData.paymentMethod === 'cod') {
+        // For COD: Create order with isPaid: false
+        const response = await axios.post(
+          `${API_URL}/api/orders`,
+          orderData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
         alert('Order placed successfully! Pay on delivery.');
+        navigate('/orders');
+      } else if (formData.paymentMethod === 'razorpay') {
+        // For Razorpay: Fetch key and create Razorpay order
+        const { data: keyData } = await axios.get(`${API_URL}/api/orders/v1/getKey`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const { key } = keyData;
+
+        const { data: orderResponse } = await axios.post(
+          `${API_URL}/api/orders/v1/payment/process`,
+          { amount: total },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        const { order } = orderResponse;
+
+        const options = {
+          key,
+          amount: order.amount,
+          currency: 'INR',
+          name: 'Your Company Name',
+          description: 'Order Payment',
+          order_id: order.id,
+          callback_url: `${API_URL}/api/orders/v1/paymentVerification`,
+          handler: async function (response) {
+            try {
+              // After payment, create the order in the database
+              const verifyResponse = await axios.post(
+                `${API_URL}/api/orders`,
+                {
+                  ...orderData,
+                  paymentInfo: {
+                    method: 'razorpay',
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature,
+                    status: 'captured'
+                  }
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                  }
+                }
+              );
+              alert('Payment successful! Order placed.');
+              navigate('/order');
+            } catch (err) {
+              console.error('Error creating order after payment:', err);
+              alert(err.response?.data?.message || 'Error creating order after payment');
+            }
+          },
+          prefill: {
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
+            contact: selectedAddress.phone
+          },
+          theme: { color: '#52B69A' }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          alert('Payment failed. Please try again.');
+          console.error('Payment failed:', response.error);
+        });
+        rzp.open();
       }
     } catch (err) {
       console.error('Error placing order:', err);
@@ -301,7 +421,7 @@ const CheckoutPage = () => {
                         <Icon className={`h-5 w-5 ${isActive ? 'brand-primary' : 'text-gray-400'}`} />
                       )}
                     </div>
-                    <span className={`font-medium ${isActive? 'text-white' : 'text-gray-400'}`}>
+                    <span className={`font-medium ${isActive ? 'text-white' : 'text-gray-400'}`}>
                       {step.title}
                     </span>
                   </div>
@@ -601,7 +721,6 @@ const CheckoutPage = () => {
                   <div className="space-y-4 mb-6">
                     {orderItems.map((item) => (
                       <div key={item.id} className="grid grid-cols-3 gap-4 items-center">
-                        {/* Product Image */}
                         <div className="w-20 h-20 bg-gray-800 rounded-md overflow-hidden">
                           <img
                             src={item.image || '/api/placeholder/80/80'}
@@ -609,8 +728,6 @@ const CheckoutPage = () => {
                             className="w-full h-full object-cover"
                           />
                         </div>
-
-                        {/* Product Details */}
                         <div className="col-span-1 flex flex-col gap-1">
                           <h3 className="text-sm font-medium text-white">{item.name}</h3>
                           <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
@@ -622,8 +739,6 @@ const CheckoutPage = () => {
                             </p>
                           )}
                         </div>
-
-                        {/* Price Details */}
                         <div className="col-span-1 text-right flex flex-col items-end gap-1">
                           {item.inStock ? (
                             <div className="flex flex-col items-end gap-1">
