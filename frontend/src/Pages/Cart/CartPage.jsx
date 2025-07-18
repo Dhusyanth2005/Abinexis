@@ -42,17 +42,14 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate(); // Added navigate hook
-  const [initialLoading, setInitialLoading] = useState(true); // Added for 2-second delay
-
-  // Initial 2-second loading delay
+  const [initialLoading, setInitialLoading] = useState(true); 
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialLoading(false);
     }, 500); // 2-second delay
-    return () => clearTimeout(timer); // Cleanup timer on unmount
+    return () => clearTimeout(timer);
   }, []);
 
-  // Fetch cart data from backend
   useEffect(() => {
     const fetchCart = async () => {
       try {
@@ -62,7 +59,7 @@ const CartPage = () => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
-        }); 
+        });
         const data = await response.json();
         if (response.ok) {
           const formattedItems = data.items.map(item => ({
@@ -96,7 +93,7 @@ const CartPage = () => {
     fetchCart();
 
     // Poll for stock updates every 30 seconds
-    const intervalId = setInterval(fetchCart, 50000);
+    const intervalId = setInterval(fetchCart, 30000);
     return () => clearInterval(intervalId); // Cleanup interval on unmount
   }, []);
 
@@ -105,7 +102,7 @@ const CartPage = () => {
     if (newQuantity < 1) return;
     try {
       const item = cartItems.find(item => item.id === id);
-      const response = await fetch('http://localhost:5000/api/cart/add', {
+      const response = await fetch('http://localhost:3000/api/cart/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +145,7 @@ const CartPage = () => {
   const removeItem = async (id) => {
     try {
       const item = cartItems.find(item => item.id === id);
-      const response = await fetch('http://localhost:5000/api/cart/remove', {
+      const response = await fetch('http://localhost:3000/api/cart/remove', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
