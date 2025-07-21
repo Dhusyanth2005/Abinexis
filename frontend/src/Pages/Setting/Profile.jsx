@@ -15,7 +15,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 // Utility function for generating unique temporary IDs
 const generateTempId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -718,8 +718,9 @@ const ProfilePage = ({ onNavigateBack }) => {
 };
 
 export default function Profile() {
+  const nav = useNavigate();
   const handleNavigateBack = () => {
-    window.history.back(); // Navigate back to the previous page
+    nav('/'); // Navigate back to the previous page
   };
 
   return (

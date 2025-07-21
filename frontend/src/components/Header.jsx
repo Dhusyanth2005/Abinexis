@@ -9,6 +9,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
   const categories = [
@@ -24,7 +25,36 @@ const Header = () => {
     'Stationery',
   ];
 
+  // Function to check if token is expired
+  const checkTokenExpiration = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsLoggedIn(false);
+      return false;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+      if (payload.exp && payload.exp < currentTime) {
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+        return false;
+      }
+      setIsLoggedIn(true);
+      return true;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+      localStorage.removeItem('token');
+      setIsLoggedIn(false);
+      return false;
+    }
+  };
+
   useEffect(() => {
+    // Check token on mount
+    checkTokenExpiration();
+
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     const handleClickOutside = (event) => {
       if (!event.target.closest('.profile-container') && !event.target.closest('.search-container')) {
@@ -40,6 +70,13 @@ const Header = () => {
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
+
+  // Check token expiration when profile dropdown is toggled
+  useEffect(() => {
+    if (isProfileOpen) {
+      checkTokenExpiration();
+    }
+  }, [isProfileOpen]);
 
   // Fetch suggestions from backend API
   const fetchSuggestions = async (query) => {
@@ -92,6 +129,14 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setIsProfileOpen(false);
+    navigate('/auth');
+  };
+
   return (
     <>
       <style jsx>{`
@@ -117,7 +162,7 @@ const Header = () => {
       `}</style>
 
       <header className="fixed top-0 w-full z-50 bg-gray-900 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm belief: px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-2 group cursor-pointer">
               <div className="w-10 h-10 brand-gradient rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
@@ -177,6 +222,14 @@ const Header = () => {
                     <Link to="/cart" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>My Cart</Link>
                     <Link to="/wishlist" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>My Wishlist</Link>
                     <Link to="/settings" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>Settings</Link>
+                    {isLoggedIn && (
+                      <button
+                        className="profile-dropdown-item w-full text-left"
+                        onClick={handleLogout}
+                      >
+                        Logout
+                      </button>
+                    )}
                   </div>
                 </div>
                 <Link to="/cart" className="relative">

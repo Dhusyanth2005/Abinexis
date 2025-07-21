@@ -28,7 +28,7 @@ export default function AuthPage() {
 
     if (token) {
       localStorage.setItem('token', token);
-      navigate('/', { replace: true });
+      navigate('/profile', { replace: true });
       if (window.location.search) {
         window.history.replaceState({}, document.title, '/');
       }
