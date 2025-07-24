@@ -32,7 +32,7 @@ const HeroSection = () => {
     },
     {
       title: "Free Shipping",
-      subtitle: "On Orders $50+",
+      subtitle: "On Orders ₹50+",
       description: "Fast delivery worldwide with premium protection",
       image: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=1200&h=800&fit=crop",
       cta: "Start Shopping",
@@ -45,57 +45,57 @@ const HeroSection = () => {
     {
       id: 1,
       title: "Wireless Earbuds Pro",
-      price: "$129.99",
-      originalPrice: "$199.99",
+      price: "₹129.99",
+      originalPrice: "₹199.99",
       image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&h=300&fit=crop"
     },
     {
       id: 2,
       title: "Smart Watch Elite",
-      price: "$249.99",
-      originalPrice: "$349.99",
+      price: "₹249.99",
+      originalPrice: "₹349.99",
       image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop"
     },
     {
       id: 3,
       title: "Gaming Headset",
-      price: "$89.99",
-      originalPrice: "$129.99",
+      price: "₹89.99",
+      originalPrice: "₹129.99",
       image: "https://images.unsplash.com/photo-1599669454699-248893623440?w=300&h=300&fit=crop"
     },
     {
       id: 4,
       title: "Laptop Stand",
-      price: "$39.99",
-      originalPrice: "$59.99",
+      price: "₹39.99",
+      originalPrice: "₹59.99",
       image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=300&h=300&fit=crop"
     },
     {
       id: 5,
       title: "Bluetooth Speaker",
-      price: "$79.99",
-      originalPrice: "$119.99",
+      price: "₹79.99",
+      originalPrice: "₹119.99",
       image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&h=300&fit=crop"
     },
     {
       id: 6,
       title: "Phone Case Pro",
-      price: "$24.99",
-      originalPrice: "$34.99",
+      price: "₹24.99",
+      originalPrice: "₹34.99",
       image: "https://images.unsplash.com/photo-1556656793-08538906a9f8?w=300&h=300&fit=crop"
     },
     {
       id: 7,
       title: "Charging Cable",
-      price: "$19.99",
-      originalPrice: "$29.99",
+      price: "₹19.99",
+      originalPrice: "₹29.99",
       image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=300&h=300&fit=crop"
     },
     {
       id: 8,
       title: "Tablet Stand",
-      price: "$34.99",
-      originalPrice: "$49.99",
+      price: "₹34.99",
+      originalPrice: "₹49.99",
       image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300&h=300&fit=crop"
     }
   ];

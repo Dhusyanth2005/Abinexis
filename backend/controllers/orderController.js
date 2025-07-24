@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
-const Product = require('../models/Product'); // Assuming Product model exists
-const User = require('../models/User'); // Assuming User model exists
+const Product = require('../models/Product');
+const User = require('../models/User');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
@@ -61,12 +61,16 @@ exports.createOrder = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Validate and fetch product details
+    // Validate and fetch product details, and check stock
     const updatedOrderItems = await Promise.all(
       orderItems.map(async (item) => {
         const product = await Product.findById(item.product);
         if (!product) {
           throw new Error(`Product not found: ${item.product}`);
+        }
+        // Check if sufficient stock is available
+        if (product.countInStock < item.quantity) {
+          throw new Error(`Insufficient stock for product: ${product.name}`);
         }
         return {
           product: item.product,
@@ -79,6 +83,17 @@ exports.createOrder = async (req, res) => {
           image: product.images[0] || '',
           filters: item.filters || {}
         };
+      })
+    );
+
+    // Reduce stock for each product
+    await Promise.all(
+      orderItems.map(async (item) => {
+        const product = await Product.findById(item.product);
+        if (product) {
+          product.countInStock -= item.quantity;
+          await product.save();
+        }
       })
     );
 
@@ -138,6 +153,16 @@ exports.paymentVerification = async (req, res) => {
       });
     }
 
+    // Find the order and update stock
+    const order = await Order.findOne({ 'paymentInfo.razorpayOrderId': razorpay_order_id });
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Stock is already reduced in createOrder for Razorpay after successful payment
     // Redirect to success page
     res.redirect(`http://localhost:5173/paymentSuccess?reference=${razorpay_payment_id}`);
   } catch (error) {
@@ -166,7 +191,7 @@ exports.getUserOrders = async (req, res) => {
 // Get Order Details
 exports.getOrderDetails = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id)
+    const order = await Order.findById(req.params.id);
     if (!order || order.user.toString() !== req.user._id.toString()) {
       return res.status(404).json({ message: 'Order not found' });
     }

@@ -39,6 +39,9 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [personalInfoErrors, setPersonalInfoErrors] = useState({});
+  const [newAddressErrors, setNewAddressErrors] = useState({});
+  const [addressSelectionError, setAddressSelectionError] = useState('');
 
   // Load Razorpay script
   useEffect(() => {
@@ -51,7 +54,7 @@ const CheckoutPage = () => {
     };
   }, []);
 
-  // Initial 2-second loading delay after header
+  // Initial 0.5-second loading delay after header
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialLoading(false);
@@ -74,10 +77,11 @@ const CheckoutPage = () => {
           firstName: user.firstName || '',
           lastName: user.lastName || '',
           email: user.email || '',
-          phone: user.phone || '',
         });
         setSavedAddresses(user.addresses || []);
-        setSelectedAddress(user.addresses?.find(addr => addr.isActive) || user.addresses?.[0] || null);
+        const activeAddress = user.addresses?.find(addr => addr.isActive) || user.addresses?.[0] || null;
+        setSelectedAddress(activeAddress);
+        if (activeAddress) setAddressSelectionError(''); // Clear error if an address is pre-selected
         setLoading(false);
       } catch (err) {
         console.error('Error fetching user data:', err);
@@ -129,23 +133,64 @@ const CheckoutPage = () => {
     }
   }, [state?.orderItems]);
 
+  const validatePersonalInfo = () => {
+    const errors = {};
+    if (!formData.firstName.trim()) errors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
+    if (!formData.email.trim()) errors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Invalid email address';
+    setPersonalInfoErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateNewAddress = () => {
+    const errors = {};
+    if (!newAddress.type.trim()) errors.type = 'Address type is required';
+    if (!newAddress.address.trim()) errors.address = 'Street address is required';
+    if (!newAddress.city.trim()) errors.city = 'City is required';
+    if (!newAddress.state.trim()) errors.state = 'State is required';
+    if (!newAddress.zipCode.trim()) errors.zipCode = 'ZIP code is required';
+    if (!newAddress.phone.trim()) errors.phone = 'Phone number is required';
+    else if (!/^\+?\d{10,15}$/.test(newAddress.phone)) errors.phone = 'Invalid phone number';
+    setNewAddressErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateAddressSelection = () => {
+    if (!selectedAddress) {
+      setAddressSelectionError('Please select a delivery address');
+      return false;
+    }
+    setAddressSelectionError('');
+    return true;
+  };
+
   const handleStepClick = (stepId) => {
+    if (stepId === 2 && currentStep === 1) {
+      if (!validatePersonalInfo()) return;
+    }
+    if (stepId === 3 && currentStep === 2) {
+      if (!validateAddressSelection()) return;
+    }
     setCurrentStep(stepId);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setPersonalInfoErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleNewAddressChange = (e) => {
     const { name, value } = e.target;
     setNewAddress(prev => ({ ...prev, [name]: value }));
+    setNewAddressErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleAddressSelect = (address) => {
     setSelectedAddress(address);
     setShowAddressDropdown(false);
+    setAddressSelectionError(''); // Clear error when an address is selected
   };
 
   const handleAddNewAddress = () => {
@@ -154,6 +199,7 @@ const CheckoutPage = () => {
   };
 
   const handleSaveNewAddress = async () => {
+    if (!validateNewAddress()) return;
     try {
       const updatedAddresses = [
         ...savedAddresses.map(addr => ({ ...addr, isActive: false })),
@@ -171,6 +217,7 @@ const CheckoutPage = () => {
       );
       setSavedAddresses(updatedAddresses);
       setSelectedAddress({ ...newAddress, isActive: true });
+      setAddressSelectionError(''); // Clear error when a new address is saved
       setShowAddNewAddress(false);
       setNewAddress({
         type: 'Home',
@@ -204,6 +251,7 @@ const CheckoutPage = () => {
   const total = subtotal + totalShipping;
 
   const handlePlaceOrder = async () => {
+    if (!validateAddressSelection()) return;
     setIsProcessing(true);
     try {
       const orderData = {
@@ -250,7 +298,7 @@ const CheckoutPage = () => {
           }
         );
         alert('Order placed successfully! Pay on delivery.');
-        navigate('/orders');
+        navigate('/order');
       } else if (formData.paymentMethod === 'razorpay') {
         // For Razorpay: Fetch key and create Razorpay order
         const { data: keyData } = await axios.get(`${API_URL}/api/orders/v1/getKey`, {
@@ -451,9 +499,12 @@ const CheckoutPage = () => {
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus-brand-primary"
+                            className={`w-full px-3 py-2 bg-gray-800 border ${personalInfoErrors.firstName ? 'border-red-500' : 'border-gray-700'} rounded-md text-white focus-brand-primary`}
                             placeholder="Enter first name"
                           />
+                          {personalInfoErrors.firstName && (
+                            <p className="text-red-500 text-xs mt-1">{personalInfoErrors.firstName}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
@@ -462,9 +513,12 @@ const CheckoutPage = () => {
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus-brand-primary"
+                            className={`w-full px-3 py-2 bg-gray-800 border ${personalInfoErrors.lastName ? 'border-red-500' : 'border-gray-700'} rounded-md text-white focus-brand-primary`}
                             placeholder="Enter last name"
                           />
+                          {personalInfoErrors.lastName && (
+                            <p className="text-red-500 text-xs mt-1">{personalInfoErrors.lastName}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
@@ -473,14 +527,17 @@ const CheckoutPage = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus-brand-primary"
+                            className={`w-full px-3 py-2 bg-gray-800 border ${personalInfoErrors.email ? 'border-red-500' : 'border-gray-700'} rounded-md text-white focus-brand-primary`}
                             placeholder="Enter email address"
                           />
+                          {personalInfoErrors.email && (
+                            <p className="text-red-500 text-xs mt-1">{personalInfoErrors.email}</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex justify-end mt-6">
                         <button
-                          onClick={() => setCurrentStep(2)}
+                          onClick={() => handleStepClick(2)}
                           className="px-6 py-2 bg-brand-primary text-white rounded-md bg-brand-primary-hover transition-colors"
                         >
                           Continue to Shipping
@@ -506,6 +563,9 @@ const CheckoutPage = () => {
                             <p>Phone: {selectedAddress.phone}</p>
                           </div>
                         </div>
+                      )}
+                      {addressSelectionError && (
+                        <p className="text-red-500 text-sm">{addressSelectionError}</p>
                       )}
                       <button
                         onClick={() => setShowAddressDropdown(!showAddressDropdown)}
@@ -556,12 +616,15 @@ const CheckoutPage = () => {
                                 name="type"
                                 value={newAddress.type}
                                 onChange={handleNewAddressChange}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus-brand-primary"
+                                className={`w-full px-3 py-2 bg-gray-700 border ${newAddressErrors.type ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus-brand-primary`}
                               >
                                 <option value="Home">Home</option>
                                 <option value="Work">Work</option>
                                 <option value="Other">Other</option>
                               </select>
+                              {newAddressErrors.type && (
+                                <p className="text-red-500 text-xs mt-1">{newAddressErrors.type}</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-300 mb-2">Street Address</label>
@@ -570,9 +633,12 @@ const CheckoutPage = () => {
                                 name="address"
                                 value={newAddress.address}
                                 onChange={handleNewAddressChange}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus-brand-primary"
+                                className={`w-full px-3 py-2 bg-gray-700 border ${newAddressErrors.address ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus-brand-primary`}
                                 placeholder="Enter your address"
                               />
+                              {newAddressErrors.address && (
+                                <p className="text-red-500 text-xs mt-1">{newAddressErrors.address}</p>
+                              )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div>
@@ -582,9 +648,12 @@ const CheckoutPage = () => {
                                   name="city"
                                   value={newAddress.city}
                                   onChange={handleNewAddressChange}
-                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus-brand-primary"
+                                  className={`w-full px-3 py-2 bg-gray-700 border ${newAddressErrors.city ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus-brand-primary`}
                                   placeholder="City"
                                 />
+                                {newAddressErrors.city && (
+                                  <p className="text-red-500 text-xs mt-1">{newAddressErrors.city}</p>
+                                )}
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">State</label>
@@ -593,9 +662,12 @@ const CheckoutPage = () => {
                                   name="state"
                                   value={newAddress.state}
                                   onChange={handleNewAddressChange}
-                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus-brand-primary"
+                                  className={`w-full px-3 py-2 bg-gray-700 border ${newAddressErrors.state ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus-brand-primary`}
                                   placeholder="State"
                                 />
+                                {newAddressErrors.state && (
+                                  <p className="text-red-500 text-xs mt-1">{newAddressErrors.state}</p>
+                                )}
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">ZIP Code</label>
@@ -604,9 +676,12 @@ const CheckoutPage = () => {
                                   name="zipCode"
                                   value={newAddress.zipCode}
                                   onChange={handleNewAddressChange}
-                                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus-brand-primary"
+                                  className={`w-full px-3 py-2 bg-gray-700 border ${newAddressErrors.zipCode ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus-brand-primary`}
                                   placeholder="ZIP Code"
                                 />
+                                {newAddressErrors.zipCode && (
+                                  <p className="text-red-500 text-xs mt-1">{newAddressErrors.zipCode}</p>
+                                )}
                               </div>
                             </div>
                             <div>
@@ -616,9 +691,12 @@ const CheckoutPage = () => {
                                 name="phone"
                                 value={newAddress.phone}
                                 onChange={handleNewAddressChange}
-                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus-brand-primary"
+                                className={`w-full px-3 py-2 bg-gray-700 border ${newAddressErrors.phone ? 'border-red-500' : 'border-gray-600'} rounded-md text-white focus-brand-primary`}
                                 placeholder="Phone Number"
                               />
+                              {newAddressErrors.phone && (
+                                <p className="text-red-500 text-xs mt-1">{newAddressErrors.phone}</p>
+                              )}
                             </div>
                           </div>
                           <div className="flex justify-end space-x-3">
@@ -645,7 +723,7 @@ const CheckoutPage = () => {
                           Back
                         </button>
                         <button
-                          onClick={() => setCurrentStep(3)}
+                          onClick={() => handleStepClick(3)}
                           className="px-6 py-2 bg-brand-primary text-white rounded-md bg-brand-primary-hover transition-colors"
                         >
                           Continue to Payment

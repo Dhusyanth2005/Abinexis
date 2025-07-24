@@ -1,171 +1,173 @@
-import React, { useState } from 'react';
-import { Heart, ShoppingCart, Trash2, Star, Plus, Minus, Share2, Filter, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Heart, Trash2, Star, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000';
 
 const WishlistPage = () => {
-  const [wishlistItems, setWishlistItems] = useState([
-    {
-      id: 1,
-      name: "Premium Wireless Headphones",
-      price: 299.99,
-      originalPrice: 399.99,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
-      rating: 4.8,
-      reviews: 2847,
-      inStock: true,
-      category: "Electronics"
-    },
-    {
-      id: 2,
-      name: "Yoga Mat Premium",
-      price: 89.99,
-      originalPrice: 120.00,
-      image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop",
-      rating: 4.6,
-      reviews: 1203,
-      inStock: true,
-      category: "Fitness"
-    },
-    {
-      id: 3,
-      name: "Smart Fitness Watch",
-      price: 249.99,
-      originalPrice: 299.99,
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop",
-      rating: 4.9,
-      reviews: 3421,
-      inStock: false,
-      category: "Electronics"
-    },
-    {
-      id: 4,
-      name: "Summer Floral Dress",
-      price: 39.99,
-      originalPrice: 59.99,
-      image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&h=300&fit=crop",
-      rating: 4.4,
-      reviews: 892,
-      inStock: true,
-      category: "Fashion"
-    },
-    {
-      id: 5,
-      name: "Ceramic Coffee Mug Set",
-      price: 45.99,
-      originalPrice: 65.99,
-      image: "https://images.unsplash.com/photo-1514228742587-6b1558fcf93a?w=400&h=300&fit=crop",
-      rating: 4.7,
-      reviews: 567,
-      inStock: true,
-      category: "Kitchen"
-    },
-    {
-      id: 6,
-      name: "Vitamin C Serum",
-      price: 79.99,
-      originalPrice: 99.99,
-      image: "https://images.unsplash.com/photo-1556228578-dd6e4ced84a6?w=400&h=300&fit=crop",
-      rating: 4.5,
-      reviews: 1456,
-      inStock: true,
-      category: "Beauty"
-    },
-    {
-      id: 7,
-      name: "Multivitamin Supplements",
-      price: 24.99,
-      originalPrice: 34.99,
-      image: "https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=400&h=300&fit=crop",
-      rating: 4.3,
-      reviews: 892,
-      inStock: true,
-      category: "Health"
-    },
-    {
-      id: 8,
-      name: "Meditation Cushion",
-      price: 65.99,
-      originalPrice: 89.99,
-      image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      rating: 4.8,
-      reviews: 654,
-      inStock: true,
-      category: "Spiritual"
-    },
-    {
-      id: 9,
-      name: "Educational Building Blocks",
-      price: 35.99,
-      originalPrice: 49.99,
-      image: "https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400&h=300&fit=crop",
-      rating: 4.6,
-      reviews: 1123,
-      inStock: true,
-      category: "Kids"
-    },
-    {
-      id: 10,
-      name: "Premium Dog Treats",
-      price: 19.99,
-      originalPrice: 29.99,
-      image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=300&fit=crop",
-      rating: 4.7,
-      reviews: 743,
-      inStock: true,
-      category: "Pets"
-    },
-    {
-      id: 11,
-      name: "Elegant Notebook Set",
-      price: 15.99,
-      originalPrice: 24.99,
-      image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=300&fit=crop",
-      rating: 4.4,
-      reviews: 456,
-      inStock: true,
-      category: "Stationery"
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [priceDetailsMap, setPriceDetailsMap] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  // Get current user ID from token
+  const getCurrentUserId = useCallback(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('No token found in localStorage');
+      return null;
     }
-  ]);
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.userId || payload.id || payload._id;
+      console.log('Decoded userId:', userId);
+      return userId ? userId.toString() : null;
+    } catch (e) {
+      console.error('Error decoding token:', e);
+      return null;
+    }
+  }, []);
 
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [quantities, setQuantities] = useState({});
+  // Fetch wishlist items
+  const fetchWishlist = useCallback(async () => {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      setError('Please log in to view your wishlist');
+      setLoading(false);
+      navigate('/auth');
+      return;
+    }
 
-  const categories = [
-    'All',
-    'Kitchen',
-    'Health',
-    'Fashion',
-    'Beauty',
-    'Electronics',
-    'Fitness',
-    'Spiritual',
-    'Kids',
-    'Pets',
-    'Stationery',
-  ];
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/api/products/wishlist`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      console.log('Wishlist data:', response.data);
 
-  const filteredItems = selectedCategory === 'All' 
-    ? wishlistItems 
-    : wishlistItems.filter(item => item.category === selectedCategory);
+      // Fetch reviews for each wishlist item and calculate cumulative rating
+      const itemsWithRatings = await Promise.all(response.data.map(async (item) => {
+        try {
+          const reviewsResponse = await axios.get(`${API_URL}/api/reviews/${item._id}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          });
+          const reviews = reviewsResponse.data.filter(review => review.product.toString() === item._id);
+          const cumulativeRating = reviews.length > 0
+            ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+            : 0;
+          return {
+            ...item,
+            cumulativeRating,
+            numReviews: reviews.length,
+          };
+        } catch (err) {
+          console.error(`Error fetching reviews for product ${item._id}:`, err);
+          return {
+            ...item,
+            cumulativeRating: 0,
+            numReviews: 0,
+          };
+        }
+      }));
 
-  const removeFromWishlist = (id) => {
-    setWishlistItems(prev => prev.filter(item => item.id !== id));
-  };
+      setWishlistItems(itemsWithRatings);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching wishlist:', err);
+      setError(err.response?.data?.message || 'Error fetching wishlist');
+      setWishlistItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [getCurrentUserId, navigate]);
 
-  const updateQuantity = (id, change) => {
-    setQuantities(prev => ({
-      ...prev,
-      [id]: Math.max(1, (prev[id] || 1) + change)
-    }));
-  };
+  // Fetch price details for wishlist items
+  const fetchPriceDetails = useCallback(async (item) => {
+    try {
+      const initialFilters = {};
+      item.filters?.forEach(filter => {
+        if (filter.values && filter.values.length > 0) {
+          initialFilters[filter.name] = filter.values[0];
+        }
+      });
+      const response = await axios.get(
+        `${API_URL}/api/products/${item._id}/price-details`,
+        {
+          params: { selectedFilters: JSON.stringify(initialFilters) },
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+      console.log(`Price details for ${item._id}:`, response.data);
+      return { id: item._id, ...response.data };
+    } catch (err) {
+      console.error(`Error fetching price details for ${item._id}:`, err);
+      return { id: item._id, effectivePrice: 0, normalPrice: 0 };
+    }
+  }, []);
 
-  const addToCart = (item) => {
-    const quantity = quantities[item.id] || 1;
-    // Cart logic would go here
-    console.log(`Added ${quantity} of ${item.name} to cart`);
-  };
+  // Fetch price details for all wishlist items
+  useEffect(() => {
+    const fetchAllPriceDetails = async () => {
+      if (wishlistItems.length === 0) return;
+      const priceDetailsPromises = wishlistItems.map(item => fetchPriceDetails(item));
+      const priceDetailsResults = await Promise.all(priceDetailsPromises);
+      const priceDetailsMap = priceDetailsResults.reduce((acc, details) => ({
+        ...acc,
+        [details.id]: details,
+      }), {});
+      setPriceDetailsMap(priceDetailsMap);
+    };
+    fetchAllPriceDetails();
+  }, [wishlistItems, fetchPriceDetails]);
 
+  // Toggle wishlist status (remove from wishlist)
+  const toggleWishlist = useCallback(async (id) => {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      alert('Please log in to modify your wishlist');
+      navigate('/login');
+      return;
+    }
 
+    try {
+      await axios.put(
+        `${API_URL}/api/products/${id}/wishlist`,
+        { isWishlist: false },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+      setWishlistItems(prev => prev.filter(item => item._id !== id));
+      setPriceDetailsMap(prev => {
+        const newMap = { ...prev };
+        delete newMap[id];
+        return newMap;
+      });
+      alert('Product removed from wishlist!');
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
+      alert(err.response?.data?.message || 'Error removing from wishlist');
+    }
+  }, [getCurrentUserId, navigate]);
+
+  // Fetch wishlist on component mount
+  useEffect(() => {
+    fetchWishlist();
+  }, [fetchWishlist]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-950 text-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand-primary)]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-red-500 text-center mt-10">{error}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -174,7 +176,7 @@ const WishlistPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <Link 
+              <Link
                 to="/"
                 className="p-2 rounded-lg hover:bg-gray-800 transition-colors mr-2"
               >
@@ -183,43 +185,16 @@ const WishlistPage = () => {
               <Heart className="h-8 w-8" style={{ color: 'var(--brand-primary)' }} />
               <div>
                 <h1 className="text-2xl font-bold text-white">My Wishlist</h1>
-                <p className="text-sm text-gray-400">{filteredItems.length} items saved</p>
+                <p className="text-sm text-gray-400">{wishlistItems.length} items saved</p>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Category Filter */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="h-5 w-5 text-gray-400" />
-            <span className="text-gray-300 font-medium">Filter by category:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  selectedCategory === category
-                    ? 'text-white shadow-lg'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-                style={selectedCategory === category ? {
-                  background: `linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))`,
-                } : {}}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Wishlist Items */}
-        {filteredItems.length === 0 ? (
+        {wishlistItems.length === 0 ? (
           <div className="text-center py-16">
             <Heart className="h-16 w-16 text-gray-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-300 mb-2">Your wishlist is empty</h2>
@@ -227,116 +202,91 @@ const WishlistPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map(item => (
-              <div
-                key={item.id}
-                className="bg-gray-900/50 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-2xl"
-              >
-                {/* Product Image */}
-                <div className="relative">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  {!item.inStock && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span className="text-white font-medium px-3 py-1 bg-red-600 rounded-full text-sm">
-                        Out of Stock
+            {wishlistItems.map(item => {
+              const priceDetails = priceDetailsMap[item._id] || {};
+              const effectivePrice = priceDetails.effectivePrice || 0;
+              const normalPrice = priceDetails.normalPrice || 0;
+              const discount = normalPrice > effectivePrice && effectivePrice > 0
+                ? Math.round(((normalPrice - effectivePrice) / normalPrice) * 100)
+                : 0;
+
+              return (
+                <div
+                  key={item._id}
+                  className="bg-gray-900/50 backdrop-blur-sm rounded-xl overflow-hidden border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-2xl"
+                >
+                  {/* Product Image */}
+                  <div className="relative">
+                    <Link to={`/shop/${item.category}/${item._id}`}>
+                      <img
+                        src={item.images?.[0] || 'https://via.placeholder.com/400x300'}
+                        alt={item.name}
+                        className="w-full h-48 object-cover"
+                      />
+                    </Link>
+                    {!item.countInStock && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <span className="text-white font-medium px-3 py-1 bg-red-600 rounded-full text-sm">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => toggleWishlist(item._id)}
+                      className="absolute top-3 right-3 p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Product Info */}
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-white leading-tight">{item.name}</h3>
+                      <span className="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-300">
+                        {item.category}
                       </span>
                     </div>
-                  )}
-                  <button
-                    onClick={() => removeFromWishlist(item.id)}
-                    className="absolute top-3 right-3 p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
 
-                {/* Product Info */}
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-white leading-tight">{item.name}</h3>
-                    <span className="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-300">
-                      {item.category}
-                    </span>
-                  </div>
-
-                  {/* Rating */}
-                  <div className="flex items-center space-x-2 mb-3">
-                    <div className="flex items-center space-x-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(item.rating)
-                              ? 'fill-current'
-                              : 'text-gray-600'
-                          }`}
-                          style={i < Math.floor(item.rating) ? { color: 'var(--primary-light-green)' } : {}}
-                        />
-                      ))}
+                    {/* Rating */}
+                    <div className="flex items-center space-x-2 mb-3">
+                      <div className="flex items-center space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.round(item.cumulativeRating || 0)
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-400">
+                        ({item.cumulativeRating || 0}) ({item.numReviews || 0} reviews)
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-400">
-                      {item.rating} ({item.reviews.toLocaleString()} reviews)
-                    </span>
-                  </div>
 
-                  {/* Price */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    <span className="text-2xl font-bold" style={{ color: 'var(--brand-primary)' }}>
-                      ${item.price}
-                    </span>
-                    <span className="text-gray-500 line-through text-sm">
-                      ${item.originalPrice}
-                    </span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-900 text-green-300">
-                      {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
-                    </span>
-                  </div>
-
-                  {/* Quantity Controls */}
-                  <div className="flex items-center space-x-3 mb-4">
-                    <span className="text-sm text-gray-300">Quantity:</span>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => updateQuantity(item.id, -1)}
-                        disabled={!item.inStock}
-                        className="p-1 rounded-full bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-8 text-center">{quantities[item.id] || 1}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, 1)}
-                        disabled={!item.inStock}
-                        className="p-1 rounded-full bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
+                    {/* Price */}
+                    <div className="flex items-center space-x-2 mb-4">
+                      <span className="text-2xl font-bold" style={{ color: 'var(--brand-primary)' }}>
+                        ₹{effectivePrice}
+                      </span>
+                      {discount > 0 && (
+                        <span className="text-gray-500 line-through text-sm">
+                          ₹{normalPrice}
+                        </span>
+                      )}
+                      {discount > 0 && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-900 text-green-300">
+                          {discount}% OFF
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={() => addToCart(item)}
-                    disabled={!item.inStock}
-                    className={`w-full py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center space-x-2 ${
-                      item.inStock
-                        ? 'text-white hover:transform hover:scale-105 hover:shadow-lg'
-                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                    }`}
-                    style={item.inStock ? {
-                      background: `linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))`,
-                    } : {}}
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                    <span>{item.inStock ? 'Add to Cart' : 'Out of Stock'}</span>
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

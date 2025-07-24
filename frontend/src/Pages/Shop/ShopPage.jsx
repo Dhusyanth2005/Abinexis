@@ -1,6 +1,115 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Star, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+// Custom Range Slider Component
+const RangeSlider = ({ min, max, value, onChange }) => {
+  const [isDragging, setIsDragging] = useState(null);
+  const sliderRef = useRef(null);
+
+  const handleMouseDown = (thumb) => (e) => {
+    e.preventDefault();
+    setIsDragging(thumb);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !sliderRef.current) return;
+
+    const rect = sliderRef.current.getBoundingClientRect();
+    const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const newValue = min + percentage * (max - min);
+
+    if (isDragging === 'min') {
+      onChange([Math.min(newValue, value[1]), value[1]]);
+    } else {
+      onChange([value[0], Math.max(newValue, value[0])]);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(null);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, value, min, max]);
+
+  const minPercent = ((value[0] - min) / (max - min)) * 100;
+  const maxPercent = ((value[1] - min) / (max - min)) * 100;
+
+  return (
+    <div className="relative">
+      {/* Value Display */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-sm text-gray-300">
+          <span className="text-gray-400">₹</span>
+          <span className="font-medium">{Math.round(value[0])}</span>
+        </div>
+        <div className="text-sm text-gray-300">
+          <span className="text-gray-400">₹</span>
+          <span className="font-medium">{Math.round(value[1])}</span>
+        </div>
+      </div>
+
+      {/* Slider Track */}
+      <div 
+        ref={sliderRef}
+        className="relative h-2 bg-gray-700 rounded-full cursor-pointer"
+        style={{ userSelect: 'none' }}
+      >
+        {/* Active Range */}
+        <div
+          className="absolute h-2 rounded-full"
+          style={{
+            left: `${minPercent}%`,
+            width: `${maxPercent - minPercent}%`,
+            backgroundColor: 'var(--brand-primary)',
+          }}
+        />
+
+        {/* Min Thumb */}
+        <div
+          className={`absolute w-5 h-5 bg-white border-2 rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-all hover:scale-110 ${
+            isDragging === 'min' ? 'scale-125 cursor-grabbing' : ''
+          }`}
+          style={{
+            left: `${minPercent}%`,
+            borderColor: 'var(--brand-primary)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+          onMouseDown={handleMouseDown('min')}
+        />
+
+        {/* Max Thumb */}
+        <div
+          className={`absolute w-5 h-5 bg-white border-2 rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-all hover:scale-110 ${
+            isDragging === 'max' ? 'scale-125 cursor-grabbing' : ''
+          }`}
+          style={{
+            left: `${maxPercent}%`,
+            borderColor: 'var(--brand-primary)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+          onMouseDown={handleMouseDown('max')}
+        />
+      </div>
+
+      {/* Min/Max Labels */}
+      <div className="flex justify-between mt-2">
+        <span className="text-xs text-gray-500">₹{min}</span>
+        <span className="text-xs text-gray-500">₹{max}</span>
+      </div>
+    </div>
+  );
+};
 
 const ShopPage = () => {
   const { category } = useParams();
@@ -8,22 +117,16 @@ const ShopPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [selectedBrands, setSelectedBrands] = useState([]);
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [priceRange, setPriceRange] = useState([10, 10000]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
-
-  // Filter data from backend
   const [categories, setCategories] = useState({});
   const [brands, setBrands] = useState({});
-
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(12);
-
-  // Backend API base URL
   const API_BASE_URL = 'http://localhost:5000/api';
 
   // Fetch filters from backend
@@ -82,17 +185,17 @@ const ShopPage = () => {
 
     const normalizedCategory = category
       ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
-      : 'Clothing';
+      : 'Fashion';
     
     const newCategory = validCategories.includes(normalizedCategory) 
       ? normalizedCategory 
-      : 'Clothing';
+      : 'Fashion';
 
     if (selectedCategory !== newCategory) {
       setSelectedCategory(newCategory);
       setSelectedSubCategory('');
       setSelectedBrands([]);
-      setPriceRange([0, 1000]);
+      setPriceRange([10, 10000]);
       setCurrentPage(1);
       setInitialLoad(true);
     }
@@ -119,23 +222,59 @@ const ShopPage = () => {
           product.category.toLowerCase() === newCategory.toLowerCase()
         );
 
-        // Add first filter price for each product
-        const productsWithPrice = filteredData.map(product => {
-          const firstFilter = product.filters[0]; // Get first filter (e.g., size)
-          const firstValue = firstFilter?.values[0]; // Get first value (e.g., "S")
-          const adjustment = firstFilter?.priceAdjustments.find(adj => adj.value === firstValue);
-          const price = adjustment ? (adjustment.discountPrice > 0 ? adjustment.discountPrice : adjustment.price || 0) : 0;
-          const originalPrice = adjustment ? adjustment.price || 0 : 0;
-          const discount = adjustment && adjustment.discountPrice > 0
-            ? Math.round(((originalPrice - adjustment.discountPrice) / originalPrice) * 100)
-            : 0;
-          return {
-            ...product,
-            displayPrice: price,
-            originalPrice,
-            discount
-          };
-        });
+        // Fetch price details and reviews for each product with first filter values
+        const productsWithPrice = await Promise.all(filteredData.map(async (product) => {
+          const initialFilters = {};
+          product.filters?.forEach(filter => {
+            if (filter.values && filter.values.length > 0) {
+              initialFilters[filter.name] = filter.values[0];
+            }
+          });
+
+          try {
+            const priceResponse = await axios.get(
+              `${API_BASE_URL}/products/${product._id}/price-details`,
+              {
+                params: { selectedFilters: JSON.stringify(initialFilters) },
+                headers,
+              }
+            );
+            const priceDetails = priceResponse.data;
+            const displayFilters = Object.entries(initialFilters).map(([name, value]) => `${name}: ${value}`).join(', ');
+            
+            // Fetch reviews to calculate cumulative rating
+            const reviewsResponse = await axios.get(`${API_BASE_URL}/reviews/${product._id}`, {
+              headers,
+            });
+            const reviews = reviewsResponse.data.filter(review => review.product.toString() === product._id);
+            const cumulativeRating = reviews.length > 0
+              ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+              : 0;
+
+            return {
+              ...product,
+              displayPrice: priceDetails.effectivePrice || 0,
+              originalPrice: priceDetails.normalPrice || 0,
+              discount: priceDetails.normalPrice > priceDetails.effectivePrice && priceDetails.effectivePrice > 0
+                ? Math.round(((priceDetails.normalPrice - priceDetails.effectivePrice) / priceDetails.normalPrice) * 100)
+                : 0,
+              displayFilters,
+              cumulativeRating,
+              numReviews: reviews.length,
+            };
+          } catch (err) {
+            console.error(`Error fetching price details or reviews for product ${product._id}:`, err);
+            return {
+              ...product,
+              displayPrice: 0,
+              originalPrice: 0,
+              discount: 0,
+              displayFilters: '',
+              cumulativeRating: 0,
+              numReviews: 0,
+            };
+          }
+        }));
 
         setTimeout(() => {
           setProducts(productsWithPrice);
@@ -152,7 +291,7 @@ const ShopPage = () => {
     };
 
     fetchProducts();
-  }, [category]);
+  }, [category, selectedCategory]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -167,6 +306,38 @@ const ShopPage = () => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     );
+  };
+
+  // Quick price filter handlers
+  const handleQuickPriceFilter = (filterType) => {
+    switch (filterType) {
+      case 'under50':
+        setPriceRange([10, 50]);
+        break;
+      case 'under100':
+        setPriceRange([10, 100]);
+        break;
+      case 'under200':
+        setPriceRange([10, 200]);
+        break;
+      case 'under500':
+        setPriceRange([10, 500]);
+        break;
+      case 'above100':
+        setPriceRange([100, 10000]);
+        break;
+      case 'above500':
+        setPriceRange([500, 10000]);
+        break;
+      case 'above1000':
+        setPriceRange([1000, 10000]);
+        break;
+      case 'above2000':
+        setPriceRange([2000, 10000]);
+        break;
+      default:
+        break;
+    }
   };
 
   const getFilteredProducts = () => {
@@ -248,14 +419,14 @@ const ShopPage = () => {
   const clearFilters = () => {
     setSelectedSubCategory('');
     setSelectedBrands([]);
-    setPriceRange([0, 1000]);
+    setPriceRange([10, 10000]);
   };
 
   const hasFiltersApplied = () => {
     return selectedSubCategory !== '' || 
            selectedBrands.length > 0 || 
-           priceRange[0] !== 0 || 
-           priceRange[1] !== 1000;
+           priceRange[0] !== 10 || 
+           priceRange[1] !== 10000;
   };
 
   const totalPages = getTotalPages();
@@ -298,18 +469,18 @@ const ShopPage = () => {
           <div
             className={`${
               sidebarOpen ? 'block' : 'hidden'
-            } lg:block fixed lg:static inset-0 z-40 w-80 bg-gray-900 lg:bg-transparent p-6 overflow-y-auto`}
+            } lg:block fixed lg:static inset-0 z-50 lg:z-0 w-80 bg-gray-900 lg:bg-transparent p-6 overflow-y-auto pt-36 lg:pt-0`}
           >
             <div className="flex items-center justify-between mb-6 lg:hidden">
               <h2 className="text-xl font-bold">Filters</h2>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white z-50"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
-
+            {/* Rest of the sidebar content remains unchanged */}
             <div className="space-y-6">
               <button
                 onClick={clearFilters}
@@ -393,31 +564,69 @@ const ShopPage = () => {
                 </div>
               )}
 
-              {/* Price Range */}
+              {/* Price Range with Volume-style Slider */}
               <div>
                 <h4 className="text-md font-medium mb-4 text-gray-300">Price Range</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-400"> ₹</span>
-                    <input
-                      type="number"
-                      value={priceRange[0]}
-                      onChange={(e) =>
-                        setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])
-                      }
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm"
-                      placeholder="Min"
-                    />
-                    <span className="text-gray-400">-</span>
-                    <input
-                      type="number"
-                      value={priceRange[1]}
-                      onChange={(e) =>
-                        setPriceRange([priceRange[0], parseInt(e.target.value) || 1000])
-                      }
-                      className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm"
-                      placeholder="Max"
-                    />
+                <div className="px-2">
+                  <RangeSlider
+                    min={10}
+                    max={10000}
+                    value={priceRange}
+                    onChange={setPriceRange}
+                  />
+                </div>
+                
+                {/* Quick Price Filter Buttons */}
+                <div className="mt-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleQuickPriceFilter('under50')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Under ₹50
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('under100')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Under ₹100
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('under200')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Under ₹200
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('under500')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Under ₹500
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('above100')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Above ₹100
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('above500')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Above ₹500
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('above1000')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Above ₹1000
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('above2000')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Above ₹2000
+                    </button>
                   </div>
                 </div>
               </div>
@@ -488,39 +697,37 @@ const ShopPage = () => {
                               -{product.discount}%
                             </div>
                           )}
-                          <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-black bg-opacity-50 rounded-full hover:bg-opacity-75">
-                            <Heart className="w-4 h-4 text-white" />
-                          </button>
                         </div>
                         <div className="p-4">
                           <h3 className="font-semibold text-white mb-2 line-clamp-2">
                             {product.name}
                           </h3>
+                          
                           <div className="flex items-center mb-2">
-                            <div className="flex items-center">
+                            <div className="flex items-center space-x-1">
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
                                   className={`w-4 h-4 ${
-                                    i < Math.floor(product.rating || 0)
-                                      ? 'text-yellow-400 fill-current'
+                                    i < Math.round(product.cumulativeRating || 0)
+                                      ? 'fill-yellow-400 text-yellow-400'
                                       : 'text-gray-600'
                                   }`}
                                 />
                               ))}
                             </div>
                             <span className="text-sm text-gray-400 ml-2">
-                              ({product.rating || 0})
+                              ({product.cumulativeRating || 0})
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                               <span className="text-lg font-bold text-white">
-                                 ₹{product.displayPrice}
+                                ₹{product.displayPrice}
                               </span>
                               {product.discount > 0 && (
                                 <span className="text-sm text-gray-400 line-through">
-                                   ₹{product.originalPrice}
+                                  ₹{product.originalPrice}
                                 </span>
                               )}
                             </div>
@@ -619,4 +826,4 @@ const ShopPage = () => {
   );
 };
 
-export default ShopPage
+export default ShopPage;

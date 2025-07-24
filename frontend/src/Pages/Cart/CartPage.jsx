@@ -102,7 +102,7 @@ const CartPage = () => {
     if (newQuantity < 1) return;
     try {
       const item = cartItems.find(item => item.id === id);
-      const response = await fetch('http://localhost:3000/api/cart/add', {
+      const response = await fetch('http://localhost:5000/api/cart/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ const CartPage = () => {
   const removeItem = async (id) => {
     try {
       const item = cartItems.find(item => item.id === id);
-      const response = await fetch('http://localhost:3000/api/cart/remove', {
+      const response = await fetch('http://localhost:5000/api/cart/remove', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -343,7 +343,7 @@ const CartPage = () => {
             </div>
             <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
             <p className="text-gray-400 mb-8">Add some items to get started!</p>
-            <button className="px-8 py-3 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)] text-white rounded-lg font-medium hover:from-[var(--brand-secondary)] hover:to-[var(--brand-accent)] transition-all">
+            <button onClick={()=>navigate("/")} className="px-8 py-3 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)] text-white rounded-lg font-medium hover:from-[var(--brand-secondary)] hover:to-[var(--brand-accent)] transition-all">
               Start Shopping
             </button>
           </div>

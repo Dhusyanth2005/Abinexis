@@ -64,7 +64,6 @@ const Footer = () => {
                 <li><a href="/faq" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">FAQs</a></li>
                 <li><a href="/shipping" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Shipping Info</a></li>
                 <li><a href="/returns" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Return & Refund Policy</a></li>
-                <li><a href="/support" className="text-gray-400 hover:text-[#52B69A] transition-colors duration-300">Support</a></li>
               </ul>
             </div>
           </div>
@@ -88,13 +87,13 @@ const Footer = () => {
             </div>
 
             <div className="flex space-x-4">
-              <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">
+              <a href="https://www.facebook.com/share/1GJbSSf413/" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">
+              <a href="https://x.com/Abinexis?t=qtQcfMwSTtgV4UNHhUMbbg&s=08" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">
+              <a href="https://www.instagram.com/abinexis?igsh=MTBnbXdicXozaWRucw==" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">
                 <Instagram className="w-5 h-5" />
               </a>
               <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-[#52B69A] transition-colors duration-300">

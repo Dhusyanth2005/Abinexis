@@ -9,7 +9,9 @@ const {
   filterProducts,
   getFilters,
   getPriceDetails,
-  searchProducts
+  searchProducts,
+  toggleWishlist,
+  getWishlistProducts
 } = require('../controllers/productController');
 
 const router = express.Router();
@@ -26,6 +28,9 @@ router.get('/filters', getFilters);
 // Filter products by category, subCategory, brand, and specific filter values
 router.get('/filter', filterProducts);
 
+// Get wishlist products
+router.get('/wishlist', protect, getWishlistProducts);
+
 // Get a single product by ID
 router.get('/:id', getProductById);
 
@@ -37,6 +42,9 @@ router.post('/', protect, admin, createProduct);
 
 // Update a product (admin only)
 router.put('/:id', protect, admin, updateProduct);
+
+// Toggle wishlist status for a product
+router.put('/:id/wishlist', protect, toggleWishlist);
 
 // Delete a product (admin only)
 router.delete('/:id', protect, admin, deleteProduct);

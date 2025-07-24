@@ -347,6 +347,50 @@ const searchProducts = async (req, res) => {
     res.status(500).json({ message: 'Error searching products', error: error.message });
   }
 };
+const toggleWishlist = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isWishlist } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    product.isWishlist = isWishlist !== undefined ? isWishlist : !product.isWishlist;
+    await product.save();
+
+    const productWithPrice = {
+      ...product.toObject(),
+      effectivePrice: product.effectivePrice ? product.effectivePrice({}) : 0
+    };
+    res.json(productWithPrice);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating wishlist status', error: error.message });
+  }
+};
+
+const getWishlistProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ isWishlist: true }).lean();
+    const productsWithPrice = products.map(product => ({
+      ...product,
+      effectivePrice: product.effectivePrice ? product.effectivePrice({}) : 0
+    }));
+    if (products.length > 0) {
+      res.json(productsWithPrice);
+    } else {
+      res.status(404).json({ message: 'No wishlist products found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching wishlist products', error: error.message });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -356,5 +400,7 @@ module.exports = {
   filterProducts,
   getFilters,
   getPriceDetails,
-  searchProducts
+  searchProducts,
+  toggleWishlist,
+  getWishlistProducts
 };

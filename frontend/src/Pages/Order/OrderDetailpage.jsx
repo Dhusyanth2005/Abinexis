@@ -182,7 +182,7 @@ const OrderDetailPage = () => {
       y += 6;
       doc.text(`   Quantity: ${item.quantity}`, 20, y);
       y += 6;
-      doc.text(`   Price: $${item.price.toFixed(2)}`, 20, y);
+      doc.text(`   Price: Rs.${item.price.toFixed(2)}`, 20, y);
       y += 8;
     });
 
@@ -191,15 +191,15 @@ const OrderDetailPage = () => {
     doc.text('Price Summary', 20, y);
     y += 8;
     doc.setFontSize(10);
-    doc.text(`Subtotal: $${order.priceSummary.subtotal.toFixed(2)}`, 20, y);
+    doc.text(`Subtotal: Rs.${order.priceSummary.subtotal.toFixed(2)}`, 20, y);
     y += 6;
     if (order.priceSummary.savings > 0) {
-      doc.text(`Savings: -$${order.priceSummary.savings.toFixed(2)}`, 20, y);
+      doc.text(`Savings: Rs.-${order.priceSummary.savings.toFixed(2)}`, 20, y);
       y += 6;
     }
-    doc.text(`Shipping: $${order.priceSummary.shippingCost.toFixed(2)}`, 20, y);
+    doc.text(`Shipping: Rs.${order.priceSummary.shippingCost.toFixed(2)}`, 20, y);
     y += 6;
-    doc.text(`Total: $${order.priceSummary.total.toFixed(2)}`, 20, y);
+    doc.text(`Total: Rs.${order.priceSummary.total.toFixed(2)}`, 20, y);
     y += 10;
 
     // Payment Information
@@ -258,7 +258,7 @@ const OrderDetailPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center space-x-4">
             <Link
-              to="/orders"
+              to="/order"
               className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -379,7 +379,7 @@ const OrderDetailPage = () => {
                       <p className="text-sm text-gray-400">Quantity: {item.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-white">${item.price.toFixed(2)}</p>
+                      <p className="font-medium text-white">₹{item.price.toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
@@ -413,22 +413,22 @@ const OrderDetailPage = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Subtotal</span>
-                  <span className="text-white">${order.priceSummary.subtotal.toFixed(2)}</span>
+                  <span className="text-white">₹{order.priceSummary.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Shipping</span>
-                  <span className="text-white">${order.priceSummary.shippingCost.toFixed(2)}</span>
+                  <span className="text-white">₹{order.priceSummary.shippingCost.toFixed(2)}</span>
                 </div>
                 {order.priceSummary.savings > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">Savings</span>
-                    <span className="text-green-400">-${order.priceSummary.savings.toFixed(2)}</span>
+                    <span className="text-green-400">-₹{order.priceSummary.savings.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-700 pt-3">
                   <div className="flex justify-between">
                     <span className="font-semibold text-white">Total</span>
-                    <span className="font-semibold text-white">${order.priceSummary.total.toFixed(2)}</span>
+                    <span className="font-semibold text-white">₹{order.priceSummary.total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>

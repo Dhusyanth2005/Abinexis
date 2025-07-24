@@ -144,7 +144,7 @@ export default function AuthPage() {
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
-        navigate('/', { replace: true });
+        navigate('/profile', { replace: true });
       } else {
         setError(data.message || 'OTP verification failed');
       }

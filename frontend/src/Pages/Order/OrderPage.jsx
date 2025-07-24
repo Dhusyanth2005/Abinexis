@@ -258,7 +258,7 @@ const OrdersPage = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-semibold text-white">
-                        ${order.priceSummary.total.toFixed(2)}
+                        ₹{order.priceSummary.total.toFixed(2)}
                       </div>
                       <div className="text-sm text-gray-400">
                         {new Date(order.createdAt).toLocaleDateString()}
@@ -288,7 +288,7 @@ const OrdersPage = () => {
                           <div className="text-sm text-gray-400">Quantity: {item.quantity}</div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-white">${item.price.toFixed(2)}</div>
+                          <div className="font-medium text-white">₹{item.price.toFixed(2)}</div>
                         </div>
                       </div>
                     ))}
