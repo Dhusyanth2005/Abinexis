@@ -21,7 +21,7 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/orders', {
+        const response = await axios.get('https://abinexis-backend.onrender.com/api/orders', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth setup
           },
@@ -144,7 +144,7 @@ const OrdersPage = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Link
-                to="/products"
+                to="/"
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors"
                 style={{ backgroundColor: 'var(--brand-primary)', color: 'white' }}
               >
