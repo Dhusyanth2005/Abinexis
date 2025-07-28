@@ -127,7 +127,7 @@ const ShopPage = () => {
   const [brands, setBrands] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(12);
-  const API_BASE_URL = 'https://abinexis-backend.onrender.com/api';
+  const API_BASE_URL = 'http://localhost:5000/api';
 
   // Fetch filters from backend
   useEffect(() => {

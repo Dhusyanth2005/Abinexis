@@ -1,8 +1,8 @@
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const axios = require('axios');
-
-const API_URL = 'https://abinexis-backend.onrender.com';
+// https://abinexis-backend.onrender.com
+const API_URL = 'http://localhost:5000';
 
 const getCart = async (req, res) => {
   try {
