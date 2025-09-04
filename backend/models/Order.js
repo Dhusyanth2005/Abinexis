@@ -59,12 +59,23 @@ const orderSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: ['processing', 'shipped','out of delivery','delivered', 'cancelled'],
+    enum: ['processing', 'shipped', 'out of delivery', 'delivered', 'cancelled', 'return accepted', 'returned', 'refund accepted', 'refunded'],
     default: 'processing'
   },
   isPaid: { type: Boolean, default: false },
   isDelivered: { type: Boolean, default: false },
-  deliveredAt: { type: Date },
+  statusTimestamps: {
+    processedAt: { type: Date },
+    shippedAt: { type: Date },
+    outForDeliveryAt: { type: Date },
+    deliveredAt: { type: Date },
+    cancelledAt: { type: Date },
+    returnAcceptedAt: { type: Date },
+    returnedAt: { type: Date },
+    refundAcceptedAt: { type: Date },
+    refundedAt: { type: Date }
+  },
+  cancelReason: { type: String },
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

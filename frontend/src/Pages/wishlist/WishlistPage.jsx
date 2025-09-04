@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Heart, Trash2, Star, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://abinexis-backend.onrender.com';
 
 const WishlistPage = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -42,7 +44,7 @@ const WishlistPage = () => {
 
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/products/wishlist`, {
+      const response = await axios.get(`${API_URL}/api/wishlist`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       console.log('Wishlist data:', response.data);
@@ -50,10 +52,10 @@ const WishlistPage = () => {
       // Fetch reviews for each wishlist item and calculate cumulative rating
       const itemsWithRatings = await Promise.all(response.data.map(async (item) => {
         try {
-          const reviewsResponse = await axios.get(`${API_URL}/api/reviews/${item._id}`, {
+          const reviewsResponse = await axios.get(`${API_URL}/api/reviews/${item.product._id}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           });
-          const reviews = reviewsResponse.data.filter(review => review.product.toString() === item._id);
+          const reviews = reviewsResponse.data.filter(review => review.product.toString() === item.product._id);
           const cumulativeRating = reviews.length > 0
             ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
             : 0;
@@ -63,7 +65,7 @@ const WishlistPage = () => {
             numReviews: reviews.length,
           };
         } catch (err) {
-          console.error(`Error fetching reviews for product ${item._id}:`, err);
+          console.error(`Error fetching reviews for product ${item.product._id}:`, err);
           return {
             ...item,
             cumulativeRating: 0,
@@ -77,6 +79,7 @@ const WishlistPage = () => {
     } catch (err) {
       console.error('Error fetching wishlist:', err);
       setError(err.response?.data?.message || 'Error fetching wishlist');
+      toast.error(err.response?.data?.message || 'Error fetching wishlist', { theme: 'dark' });
       setWishlistItems([]);
     } finally {
       setLoading(false);
@@ -87,23 +90,23 @@ const WishlistPage = () => {
   const fetchPriceDetails = useCallback(async (item) => {
     try {
       const initialFilters = {};
-      item.filters?.forEach(filter => {
+      item.product.filters?.forEach(filter => {
         if (filter.values && filter.values.length > 0) {
           initialFilters[filter.name] = filter.values[0];
         }
       });
       const response = await axios.get(
-        `${API_URL}/api/products/${item._id}/price-details`,
+        `${API_URL}/api/products/${item.product._id}/price-details`,
         {
           params: { selectedFilters: JSON.stringify(initialFilters) },
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         }
       );
-      console.log(`Price details for ${item._id}:`, response.data);
-      return { id: item._id, ...response.data };
+      console.log(`Price details for ${item.product._id}:`, response.data);
+      return { id: item.product._id, ...response.data };
     } catch (err) {
-      console.error(`Error fetching price details for ${item._id}:`, err);
-      return { id: item._id, effectivePrice: 0, normalPrice: 0 };
+      console.error(`Error fetching price details for ${item.product._id}:`, err);
+      return { id: item.product._id, effectivePrice: 0, normalPrice: 0 };
     }
   }, []);
 
@@ -122,33 +125,29 @@ const WishlistPage = () => {
     fetchAllPriceDetails();
   }, [wishlistItems, fetchPriceDetails]);
 
-  // Toggle wishlist status (remove from wishlist)
-  const toggleWishlist = useCallback(async (id) => {
+  // Remove from wishlist
+  const removeFromWishlist = useCallback(async (productId) => {
     const userId = getCurrentUserId();
     if (!userId) {
-      alert('Please log in to modify your wishlist');
+      toast.error('Please log in to modify your wishlist', { theme: 'dark' });
       navigate('/login');
       return;
     }
 
     try {
-      await axios.put(
-        `${API_URL}/api/products/${id}/wishlist`,
-        { isWishlist: false },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      setWishlistItems(prev => prev.filter(item => item._id !== id));
+      await axios.delete(`${API_URL}/api/wishlist/${productId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setWishlistItems(prev => prev.filter(item => item.product._id !== productId));
       setPriceDetailsMap(prev => {
         const newMap = { ...prev };
-        delete newMap[id];
+        delete newMap[productId];
         return newMap;
       });
-      alert('Product removed from wishlist!');
+      toast.success('Product removed from wishlist!', { theme: 'dark' });
     } catch (err) {
       console.error('Error removing from wishlist:', err);
-      alert(err.response?.data?.message || 'Error removing from wishlist');
+      toast.error(err.response?.data?.message || 'Error removing from wishlist', { theme: 'dark' });
     }
   }, [getCurrentUserId, navigate]);
 
@@ -166,11 +165,39 @@ const WishlistPage = () => {
   }
 
   if (error) {
-    return <div className="text-red-500 text-center mt-10">{error}</div>;
+    return (
+      <div className="text-center mt-10">
+        <p className="text-red-500">{error}</p>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       {/* Header */}
       <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -203,7 +230,7 @@ const WishlistPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wishlistItems.map(item => {
-              const priceDetails = priceDetailsMap[item._id] || {};
+              const priceDetails = priceDetailsMap[item.product._id] || {};
               const effectivePrice = priceDetails.effectivePrice || 0;
               const normalPrice = priceDetails.normalPrice || 0;
               const discount = normalPrice > effectivePrice && effectivePrice > 0
@@ -217,14 +244,14 @@ const WishlistPage = () => {
                 >
                   {/* Product Image */}
                   <div className="relative">
-                    <Link to={`/shop/${item.category}/${item._id}`}>
+                    <Link to={`/shop/${item.product.category}/${item.product._id}`}>
                       <img
-                        src={item.images?.[0] || 'https://via.placeholder.com/400x300'}
-                        alt={item.name}
+                        src={item.product.images?.[0] || 'https://via.placeholder.com/400x300'}
+                        alt={item.product.name}
                         className="w-full h-48 object-cover"
                       />
                     </Link>
-                    {!item.countInStock && (
+                    {!item.product.countInStock && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                         <span className="text-white font-medium px-3 py-1 bg-red-600 rounded-full text-sm">
                           Out of Stock
@@ -232,7 +259,7 @@ const WishlistPage = () => {
                       </div>
                     )}
                     <button
-                      onClick={() => toggleWishlist(item._id)}
+                      onClick={() => removeFromWishlist(item.product._id)}
                       className="absolute top-3 right-3 p-2 bg-gray-900/80 hover:bg-red-600 rounded-full transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -242,9 +269,9 @@ const WishlistPage = () => {
                   {/* Product Info */}
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-white leading-tight">{item.name}</h3>
+                      <h3 className="text-lg font-semibold text-white leading-tight">{item.product.name}</h3>
                       <span className="text-xs px-2 py-1 rounded-full bg-gray-800 text-gray-300">
-                        {item.category}
+                        {item.product.category}
                       </span>
                     </div>
 

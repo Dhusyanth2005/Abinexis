@@ -1,158 +1,93 @@
-import React from 'react';
-import { Users, Package2, ShoppingBag, TrendingUp, Star, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Package2, ShoppingBag, Star, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const mockProducts = [
-    {
-      _id: '1',
-      name: 'Premium Wireless Headphones',
-      category: 'Electronics',
-      subCategory: 'Audio',
-      brand: 'TechBrand',
-      description: 'High-quality wireless headphones with noise cancellation',
-      filters: [
-        {
-          name: 'color',
-          values: ['Black', 'White', 'Blue'],
-          priceAdjustments: [
-            { value: 'Black', price: 2999, discountPrice: 2599 },
-            { value: 'White', price: 2999, discountPrice: 2599 },
-            { value: 'Blue', price: 3199, discountPrice: 2799 },
-          ],
-        },
-      ],
-      features: ['Noise Cancellation', 'Bluetooth 5.0', '30hr Battery'],
-      images: ['https://via.placeholder.com/300x300/52B69A/white?text=Headphones'],
-      countInStock: 50,
-      rating: 4.5,
-      numReviews: 128,
-      shippingCost: 99,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      _id: '2',
-      name: 'Organic Face Cream',
-      category: 'Beauty',
-      subCategory: 'Skincare',
-      brand: 'NaturalGlow',
-      description: 'Organic anti-aging face cream with natural ingredients',
-      filters: [
-        {
-          name: 'size',
-          values: ['50ml', '100ml'],
-          priceAdjustments: [
-            { value: '50ml', price: 899, discountPrice: 749 },
-            { value: '100ml', price: 1599, discountPrice: 1299 },
-          ],
-        },
-      ],
-      features: ['Organic', 'Anti-aging', 'Suitable for all skin types'],
-      images: ['https://via.placeholder.com/300x300/76C893/white?text=Face+Cream'],
-      countInStock: 75,
-      rating: 4.3,
-      numReviews: 89,
-      shippingCost: 0,
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalOrders: 0,
+    recentProducts: [],
+    recentOrders: [],
+  });
+const [currentTime, setCurrentTime] = useState(new Date());
 
-  const mockOrders = [
-    {
-      _id: '1',
-      user: { _id: '1', name: 'John Doe' },
-      personalInfo: {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-      },
-      orderItems: [
-        {
-          product: '1',
-          name: 'Premium Wireless Headphones',
-          category: 'Electronics',
-          quantity: 1,
-          price: 2599,
-          originalPrice: 2999,
-          image: 'https://via.placeholder.com/100x100/52B69A/white?text=Product',
-        },
-      ],
-      shippingInfo: {
-        type: 'Home',
-        address: '123 Main St',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        postalCode: '400001',
-        phone: '+91 9876543210',
-      },
-      paymentInfo: {
-        method: 'razorpay',
-        status: 'completed',
-      },
-      priceSummary: {
-        subtotal: 2599,
-        savings: 400,
-        shippingCost: 99,
-        total: 2698,
-      },
-      orderStatus: 'processing',
-      isPaid: true,
-      createdAt: new Date().toISOString(),
-    },
-    {
-      _id: '2',
-      user: { _id: '2', name: 'Jane Smith' },
-      personalInfo: {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane@example.com',
-      },
-      orderItems: [
-        {
-          product: '2',
-          name: 'Organic Face Cream',
-          category: 'Beauty',
-          quantity: 2,
-          price: 1299,
-          originalPrice: 1599,
-          image: 'https://via.placeholder.com/100x100/76C893/white?text=Product',
-        },
-      ],
-      shippingInfo: {
-        type: 'Work',
-        address: '456 Business Ave',
-        city: 'Delhi',
-        state: 'Delhi',
-        postalCode: '110001',
-        phone: '+91 9876543211',
-      },
-      paymentInfo: {
-        method: 'cod',
-        status: 'pending',
-      },
-      priceSummary: {
-        subtotal: 2598,
-        savings: 600,
-        shippingCost: 0,
-        total: 2598,
-      },
-      orderStatus: 'shipped',
-      isPaid: false,
-      createdAt: new Date().toISOString(),
-    },
-  ];
+useEffect(() => {
+  const timer = setInterval(() => {
+    setCurrentTime(new Date());
+  }, 1000);
+  return () => clearInterval(timer);
+}, []);
 
-  const stats = {
-    totalUsers: 1247,
-    totalProducts: mockProducts.length,
-    totalOrders: mockOrders.length,
-    recentProducts: mockProducts.slice(-3),
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found, please log in as admin');
+          return;
+        }
+
+        const config = {
+          headers: { Authorization: `Bearer ${token}` },
+        };
+
+        const [userResponse, productCountResponse, productsResponse, orderCountResponse, recentOrdersResponse] = await Promise.all([
+          axios.get('https://abinexis-backend.onrender.com/api/auth/user-count', config),
+          axios.get('https://abinexis-backend.onrender.com/api/products/product-count', config),
+          axios.get('https://abinexis-backend.onrender.com/api/products?sort=-createdAt&limit=4', config),
+          axios.get('https://abinexis-backend.onrender.com/api/orders/order-count', config),
+          axios.get('https://abinexis-backend.onrender.com/api/orders/recent-orders', config),
+        ]);
+
+        // Fetch ratings for recent products
+        const productsWithRatings = await Promise.all(
+          productsResponse.data.map(async (product) => {
+            try {
+              const reviewResponse = await axios.get(`https://abinexis-backend.onrender.com/api/reviews/${product._id}`, config);
+              const reviews = reviewResponse.data.filter(review => review.product.toString() === product._id);
+              const numReviews = reviews.length;
+              const rating = numReviews > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / numReviews).toFixed(1) : 0;
+              return { ...product, rating, numReviews };
+            } catch (err) {
+              console.error(`Error fetching reviews for product ${product._id}:`, err);
+              return { ...product, rating: 0, numReviews: 0 };
+            }
+          })
+        );
+
+        setStats({
+          totalUsers: userResponse.data.totalUsers || 0,
+          totalProducts: productCountResponse.data.totalProducts || 0,
+          totalOrders: orderCountResponse.data.totalOrders || 0,
+          recentProducts: productsWithRatings,
+          recentOrders: recentOrdersResponse.data || [],
+        });
+      } catch (error) {
+        console.error('Error fetching data:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          config: error.config?.url,
+        });
+        setStats({
+          totalUsers: 0,
+          totalProducts: 0,
+          totalOrders: 0,
+          recentProducts: [],
+          recentOrders: [],
+        });
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-7">
       <div className="max-w-7xl mx-auto space-y-8">
-        
         {/* Welcome Header */}
         <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-400/20 rounded-xl p-6">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -169,19 +104,25 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <h2 className="text-2xl font-semibold text-white">Welcome back, Abinash</h2>
-                <p className="text-gray-400">
-                  {new Date().toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
+      <h2 className="text-2xl font-semibold text-white">Welcome back, Abinash</h2>
+      <p className="text-green-400">
+        {currentTime.toLocaleString('en-IN', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit', // Added seconds for live timer effect
+          timeZone: 'Asia/Kolkata',
+        })}
+      </p>
+    </div>
             </div>
-            
-            <button onClick={()=>navigate("/product-management")} className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg">
+            <button
+              onClick={() => navigate('/product-management')}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-lg"
+            >
               <Plus className="h-5 w-5" />
               Add New Product
             </button>
@@ -189,7 +130,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -201,7 +142,7 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -213,7 +154,7 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -225,51 +166,47 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Total Revenue</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  ₹{mockOrders.reduce((sum, order) => sum + order.priceSummary.total, 0).toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-yellow-500/10 p-3 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-yellow-400" />
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
           {/* Recent Products */}
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">Recent Products</h3>
-              <button onClick={()=>navigate("/product-management")} className="text-blue-400 hover:text-blue-300 text-sm font-medium">View All</button>
+              <button
+                onClick={() => navigate('/product-management')}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                View All
+              </button>
             </div>
             <div className="space-y-4">
-              {stats.recentProducts.map((product) => (
-                <div key={product._id} className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg">
-                  <img 
-                    src={product.images[0]} 
-                    alt={product.name} 
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-white font-medium truncate">{product.name}</h4>
-                    <p className="text-gray-400 text-sm">{product.category} • {product.brand}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-green-400 font-medium text-sm">Stock: {product.countInStock}</p>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-gray-400 text-sm">{product.rating}</span>
+              {stats.recentProducts.length > 0 ? (
+                stats.recentProducts.map((product) => (
+                  <div key={product._id} className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg">
+                    <img
+                      src={product.images[0] || 'https://via.placeholder.com/100x100/cccccc/ffffff?text=No+Image'}
+                      alt={product.name}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium truncate">{product.name}</h4>
+                      <p className="text-gray-400 text-sm">
+                        {product.category} • {product.brand || 'No Brand'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-green-400 font-medium text-sm">Stock: {product.countInStock}</p>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <span className="text-gray-400 text-sm">{product.rating} ({product.numReviews})</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm">No recent products found.</p>
+              )}
             </div>
           </div>
 
@@ -277,35 +214,55 @@ const Dashboard = () => {
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-white">Recent Orders</h3>
-              <button onClick={()=>navigate("/order-management")} className="text-blue-400 hover:text-blue-300 text-sm font-medium">View All</button>
+              <button
+                onClick={() => navigate('/order-management')}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                View All
+              </button>
             </div>
             <div className="space-y-4">
-              {mockOrders.map((order) => (
-                <div key={order._id} className="p-4 bg-gray-900 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h4 className="text-white font-medium">{order.personalInfo.firstName} {order.personalInfo.lastName}</h4>
-                      <p className="text-gray-400 text-sm">Order #{order._id}</p>
+              {stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order) => (
+                  <div
+                    key={order._id}
+                    className="p-3 bg-gray-900 rounded-lg sm:p-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2 sm:gap-4">
+                      <div>
+                        <h4 className="text-white font-medium text-sm sm:text-base">
+                          {order.personalInfo.firstName} {order.personalInfo.lastName}
+                        </h4>
+                        <p className="text-gray-400 text-xs sm:text-sm">Order #{order._id}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white font-medium text-sm sm:text-base">
+                          ₹{order.priceSummary.total.toLocaleString()}
+                        </p>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            order.orderStatus === 'processing'
+                              ? 'bg-yellow-500/10 text-yellow-400'
+                              : 'bg-green-500/10 text-green-400'
+                          }`}
+                        >
+                          {order.orderStatus}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-white font-medium">₹{order.priceSummary.total.toLocaleString()}</p>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        order.orderStatus === 'processing' 
-                          ? 'bg-yellow-500/10 text-yellow-400' 
-                          : 'bg-green-500/10 text-green-400'
-                      }`}>
-                        {order.orderStatus}
+                    <div className="flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm">
+                      <span className="text-gray-400 mb-1 sm:mb-0">
+                        {order.orderItems.length} item(s)
+                      </span>
+                      <span className="text-gray-400">
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">{order.orderItems.length} item(s)</span>
-                    <span className="text-gray-400">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm">No recent orders found.</p>
+              )}
             </div>
           </div>
         </div>
